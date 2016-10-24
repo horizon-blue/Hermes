@@ -6,13 +6,13 @@
 
 #include "client.h"
 
-int main( int argc, char* agrv[] ) {
+int main( int argc, char* argv[] ) {
     fprintf( stderr, "%llu: starting client...\n", get_timestamp() );
 
     Socket _s;
     initialize_socket( &_s );
 
-    _s.create( &_s, "216.58.192.174", 80 );
+    _s.create( &_s, argc > 1 ? argv[1] : "216.58.192.174", 80, 0 );
     _s.connect( &_s );
 
     char* request = "GET / HTTP/1.1\r\nHost: \r\n\r\n";

@@ -9,15 +9,25 @@
 #include <unistd.h>     /* for close() */
 
 typedef struct Socket {
-    int                sock;
+    /* socket file descriptor*/
+    int sock;
+
+    /* socket address struct */
     struct sockaddr_in server_addr;
-    int ( *create )( struct Socket* self, const char* ip, unsigned short port );
+
+    /* max pending connection when listening */
+    int max_connection;
+
+    /* function pointer */
+    int ( *create )( struct Socket* self, const char* ip, unsigned short port,
+                     int max_connection );
     int ( *connect )( struct Socket* self );
     int ( *send )( struct Socket* self, const char* buffer, size_t length );
     int ( *receive )( struct Socket* self );
-    int ( *bind )();
-    int ( *listen )();
-    int ( *accept )();
+    int ( *bind )( struct Socket* self );
+    int ( *listen )( struct Socket* self );
+    int ( *accept )( struct Socket* self );
+    int ( *handle )( struct Socket* self, void* handler );
     int ( *close )( struct Socket* self );
     int ( *destroy )( struct Socket* self );
 } Socket;
