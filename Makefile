@@ -15,7 +15,7 @@ ROOT_DIR=$(shell pwd)
 
 CXX = gcc
 LD = gcc
-OBJS_DEP = api.o socket.o util.o
+OBJS_DEP = api.o socket.o util.o error.o configfile.o
 OBJS_SERVER = server.o
 OBJS_CLIENT = client.o
 OBJS_DIR = .objs
@@ -39,9 +39,9 @@ CXXFLAGS += -g -O0
 endif
 
 .PHONY: all server client
-all: pre-compile server-release client echo-done
-server: pre-compile server-release echo-done
-client: pre-compile client-release echo-done
+all: clean pre-compile server-release client echo-done
+server: clean pre-compile server-release echo-done
+client: clean pre-compile client-release echo-done
 
 pre-compile: echo-compile $(OBJS_DIR)
 
@@ -60,19 +60,19 @@ $(OBJS_DIR)/%-debug.o: %.c
 	@$(CXX) -c $(CXXFLAGS) -DDEBUG $< -o $@
 
 server-release: $(OBJS_DEP:%.o=$(OBJS_DIR)/%.o) $(OBJS_SERVER:%.o=$(OBJS_DIR)/%.o)
-	@echo -e " ld\t$<"
+	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o server
 
 server-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_SERVER:%.o=$(OBJS_DIR)/%-debug.o)
-	@echo -e " ld\t$<"
+	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o server
 
 client-release: $(OBJS_DEP:%.o=$(OBJS_DIR)/%.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%.o)
-	@echo -e " ld\t$<"
+	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o client
 
 client-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%-debug.o)
-	@echo -e " ld\t$<"
+	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o client
 
 .PHONY: kilo

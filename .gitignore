@@ -2,4 +2,6 @@ kilo
 .objs
 server
 client
-.swp
+*.swp
+*.dSYM
+tags
