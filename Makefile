@@ -16,11 +16,12 @@ ROOT_DIR=$(shell pwd)
 CXX = gcc
 LD = gcc
 OBJS_DEP = api.o socket.o util.o error.o configfile.o
+VPATH = ./deps
 OBJS_SERVER = server.o
 OBJS_CLIENT = client.o
 OBJS_DIR = .objs
 OPTIMIZE = off
-INCLUDES = -I./includes/ -I$(OBJS_DIR)/
+INCLUDES = -I./includes/ -I$(OBJS_DIR)/ -Ideps/
 WARNINGS = -pedantic -Wall -Werror -Wfatal-errors -Wextra -Wno-unused-parameter -Wno-unused-variable
 LDFLAGS = $(INCLUDES) -std=c99 -lpthread $(WARNINGS)
 CXXFLAGS = $(INCLUDES) -std=c99 -MMD -MP $(WARNINGS)
