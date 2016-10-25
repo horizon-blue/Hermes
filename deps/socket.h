@@ -36,7 +36,7 @@ typedef struct Socket {
     int ( *bind )( struct Socket* self );
     int ( *listen )( struct Socket* self );
     int ( *accept )( struct Socket* self );
-    int ( *handle )( struct Socket* self, void* handler );
+    int ( *handle )( struct Socket* self,unsigned char* handler );
     int ( *close )( struct Socket* self, ... );
     int ( *destroy )( struct Socket* self );
 } Socket;

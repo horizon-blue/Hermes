@@ -1,8 +1,14 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
+#include <assert.h>
+#include <features.h>
+#include <unistd.h>
+
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -28,6 +34,7 @@ uint64_t get_timestamp() {
     ts.tv_sec  = mts.tv_sec;
     ts.tv_nsec = mts.tv_nsec;
 #else
+    assert(_POSIX_C_SOURCE >= 199309L);
     clock_gettime( CLOCK_REALTIME, &ts );
 #endif
 

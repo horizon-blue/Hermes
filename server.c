@@ -15,6 +15,11 @@ void int_handler( int dummy ) {
     keep_running = 0;
 }
 
+typedef union {
+    uint8_t (*funcptr)(Socket* self, Socket* client);
+    unsigned char *objptr;
+} echo_u;
+
 uint8_t echo( Socket* self, Socket* client ) {
     static char* buffer = NULL;
     size_t       length;
@@ -36,7 +41,7 @@ uint8_t echo( Socket* self, Socket* client ) {
 }
 
 int main( int argc, char* argv[] ) {
-    fprintf( stderr, "%llu: starting server...\n", get_timestamp() );
+    fprintf( stderr, "%llu: starting server...\n", (long long unsigned int)get_timestamp() );
 
     signal( SIGINT, int_handler );
 
@@ -48,7 +53,9 @@ int main( int argc, char* argv[] ) {
     _s.bind( &_s );
     _s.listen( &_s );
 
-    _s.handle( &_s, (void*)echo );
+    echo_u _u;
+    _u.funcptr = echo;
+    _s.handle( &_s, _u.objptr );
 
     while ( keep_running )
         ;

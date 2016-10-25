@@ -6,7 +6,6 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <unistd.h>
 
 #include "error.h"
 #include "util.h"
@@ -25,7 +24,7 @@ int Socket_receive( Socket* self, char** buffer, size_t* length );
 int Socket_bind( Socket* self );
 int Socket_listen( Socket* self );
 int Socket_accept( Socket* self );
-int Socket_handle( Socket* self, void* handler );
+int Socket_handle( Socket* self,unsigned char* handler );
 int Socket_close( Socket* self, ... );
 int Socket_destroy( Socket* self );
 
@@ -50,7 +49,7 @@ Socket* initialize_socket( Socket* ptr ) {
     ptr->id = get_timestamp();
 
 #ifdef DEBUG
-    fprintf( stderr, "[%s] create socket %llu\n", __func__, ptr->id );
+    fprintf( stderr, "[%s] create socket %llu\n", __func__, (long long unsigned int)ptr->id );
 #endif
 
     return ptr;
@@ -91,7 +90,7 @@ int Socket_close( Socket* self, ... ) {
 
 #ifdef DEBUG
     fprintf( stderr, "[%s] client %llu socket closed.\n", __func__,
-             client->id );
+             (long long unsigned int)client->id );
 #endif
 
     return 0;
@@ -113,7 +112,8 @@ int Socket_send( Socket* self, const char* buffer, size_t length ) {
     while ( length > 0 ) {
         int i = 0;
 #ifdef DEBUG
-        fprintf( stderr, "[%s] send to client %lld: %s\n", __func__, self->id,
+        fprintf( stderr, "[%s] send to client %lld: %s\n", __func__, 
+                    (long long unsigned int)self->id,
                  ptr );
 #endif
         if ( ( i = send( self->sock, ptr, length, 0 ) ) < 0 )
@@ -200,6 +200,7 @@ typedef struct Socket_response_thread_t {
 
 void* Socket_response_thread( void* info ) {
     Socket_response_thread_t* ptr = (Socket_response_thread_t*)info;
+
 #ifdef DEBUG
     fprintf( stderr, "[%s] thread %lu started.\n", __func__,
              (unsigned long)ptr->pid );
@@ -215,8 +216,13 @@ void* Socket_response_thread( void* info ) {
 
 typedef struct Socket_handle_thread_t {
     Socket* self;
-    void*   handler;
+    unsigned char*   handler;
 } Socket_handle_thread_t;
+
+typedef union{
+    bool ( *funcptr )( Socket * self, Socket * client );
+    unsigned char* objptr;
+} handler_u;
 
 void* Socket_handle_thread( void* info ) {
     Socket_handle_thread_t* ptr = (Socket_handle_thread_t*)info;
@@ -249,8 +255,9 @@ void* Socket_handle_thread( void* info ) {
 
         Socket_response_thread_t* client = &clients[client_number - 1];
 
-        client->handler =
-            (bool ( * )( Socket * self, Socket * client ))ptr->handler;
+        handler_u _u;
+        _u.objptr = ptr->handler;
+        client->handler = _u.funcptr;
         client->self   = ptr->self;
         client->client = clientSocket;
 
@@ -271,7 +278,7 @@ void* Socket_handle_thread( void* info ) {
     return NULL;
 }
 
-int Socket_handle( Socket* self, void* handler ) {
+int Socket_handle( Socket* self,unsigned char* handler ) {
     Socket_handle_thread_t* info =
         (Socket_handle_thread_t*)malloc( sizeof( Socket_handle_thread_t ) );
     memset( info, 0, sizeof( Socket_handle_thread_t ) );
