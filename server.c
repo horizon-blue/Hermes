@@ -1,20 +1,44 @@
+#include <inttypes.h>
+#include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "socket.h"
 #include "util.h"
 
 #include "server.h"
 
-bool echo( Socket* self, Socket* client ) {
+static volatile int keep_running = 1;
+
+void int_handler( int dummy ) {
+    keep_running = 0;
+}
+
+uint8_t echo( Socket* self, Socket* client ) {
+    static char* buffer = NULL;
+    size_t       length;
+    if ( client->receive( client, &buffer, &length ) ) return 0;
+
 #ifdef DEBUG
-    fprintf(stderr, "tp");
+    fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
 #endif
-    client->receive( client );
-    return false;
+
+    if ( memcmp( buffer, "exit", 4 ) == 0 ) {
+        client->send( client, "\nGoodbye.\r\n", 11 );
+        client->close( self, client );
+
+        self->broadcast( self, self, "\nSomeone left.\r\n", 16 );
+        return 1;
+    }
+    self->broadcast( self, self, buffer, length );
+    return 1;
 }
 
 int main( int argc, char* argv[] ) {
     fprintf( stderr, "%llu: starting server...\n", get_timestamp() );
+
+    signal( SIGINT, int_handler );
 
     Socket _s;
     initialize_socket( &_s );
@@ -26,8 +50,10 @@ int main( int argc, char* argv[] ) {
 
     _s.handle( &_s, (void*)echo );
 
-    for ( ;; )
+    while ( keep_running )
         ;
+
+    /* TODO destroy handler thread */
 
     return 0;
 }

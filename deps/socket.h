@@ -11,6 +11,7 @@
 typedef struct Socket {
     /* socket file descriptor*/
     int sock;
+    volatile uint8_t sock_closed;
 
     /* socket address struct */
     struct sockaddr_in server_addr;
@@ -18,17 +19,25 @@ typedef struct Socket {
     /* max pending connection when listening */
     int max_connection;
 
+    /* Using single list to save child socket */
+    struct Socket* next;
+
+    /* using timestamp as id */
+    uint64_t id;
+
     /* function pointer */
     int ( *create )( struct Socket* self, const char* ip, unsigned short port,
                      int max_connection );
     int ( *connect )( struct Socket* self );
     int ( *send )( struct Socket* self, const char* buffer, size_t length );
-    int ( *receive )( struct Socket* self );
+    int ( *broadcast )( struct Socket* self, struct Socket* start,
+                        const char* buffer, size_t length );
+    int ( *receive )( struct Socket* self, char** buffer, size_t* length );
     int ( *bind )( struct Socket* self );
     int ( *listen )( struct Socket* self );
     int ( *accept )( struct Socket* self );
     int ( *handle )( struct Socket* self, void* handler );
-    int ( *close )( struct Socket* self );
+    int ( *close )( struct Socket* self, ... );
     int ( *destroy )( struct Socket* self );
 } Socket;
 

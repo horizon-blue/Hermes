@@ -1,12 +1,15 @@
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <unistd.h>
 
 #include "error.h"
+#include "util.h"
 
 #include "socket.h"
 
@@ -16,28 +19,39 @@ int Socket_create( Socket* self, const char* ip, unsigned short port,
                    int max_connection );
 int Socket_connect( Socket* self );
 int Socket_send( Socket* self, const char* buffer, size_t length );
-int Socket_receive( Socket* self );
+int Socket_broadcast( Socket* self, Socket* start, const char* buffer,
+                      size_t length );
+int Socket_receive( Socket* self, char** buffer, size_t* length );
 int Socket_bind( Socket* self );
 int Socket_listen( Socket* self );
 int Socket_accept( Socket* self );
 int Socket_handle( Socket* self, void* handler );
-int Socket_close( Socket* self );
+int Socket_close( Socket* self, ... );
 int Socket_destroy( Socket* self );
 
 Socket* initialize_socket( Socket* ptr ) {
     if ( !ptr ) ptr = (Socket*)malloc( sizeof( Socket ) );
     memset( ptr, 0, sizeof( Socket ) );
 
-    ptr->create  = Socket_create;
-    ptr->connect = Socket_connect;
-    ptr->send    = Socket_send;
-    ptr->receive = Socket_receive;
-    ptr->bind    = Socket_bind;
-    ptr->listen  = Socket_listen;
-    ptr->accept  = Socket_accept;
-    ptr->handle  = Socket_handle;
-    ptr->close   = Socket_close;
-    ptr->destroy = Socket_destroy;
+    ptr->next = NULL;
+
+    ptr->create    = Socket_create;
+    ptr->connect   = Socket_connect;
+    ptr->send      = Socket_send;
+    ptr->broadcast = Socket_broadcast;
+    ptr->receive   = Socket_receive;
+    ptr->bind      = Socket_bind;
+    ptr->listen    = Socket_listen;
+    ptr->accept    = Socket_accept;
+    ptr->handle    = Socket_handle;
+    ptr->close     = Socket_close;
+    ptr->destroy   = Socket_destroy;
+
+    ptr->id = get_timestamp();
+
+#ifdef DEBUG
+    fprintf( stderr, "[%s] create socket %llu\n", __func__, ptr->id );
+#endif
 
     return ptr;
 }
@@ -61,6 +75,28 @@ int Socket_create( Socket* self, const char* ip, unsigned short port,
     return 0;
 }
 
+/* close socket */
+int Socket_close( Socket* self, ... ) {
+    va_list vap;
+    va_start( vap, self );
+    Socket* client = va_arg( vap, Socket* );
+    va_end( vap );
+
+    if ( client == NULL ) client = self;
+
+    close( client->sock );
+    client->sock_closed = 1;
+
+/* TODO remove client from linked list */
+
+#ifdef DEBUG
+    fprintf( stderr, "[%s] client %llu socket closed.\n", __func__,
+             client->id );
+#endif
+
+    return 0;
+}
+
 /* Establish the connection to the server */
 int Socket_connect( Socket* self ) {
     if ( connect( self->sock, (struct sockaddr*)&( self->server_addr ),
@@ -71,11 +107,14 @@ int Socket_connect( Socket* self ) {
 
 /* send data */
 int Socket_send( Socket* self, const char* buffer, size_t length ) {
+    if ( self->sock_closed ) return 1;
+
     char* ptr = (char*)buffer;
     while ( length > 0 ) {
         int i = 0;
 #ifdef DEBUG
-        fprintf( stderr, "[%s] send remain: %s\n", __func__, ptr );
+        fprintf( stderr, "[%s] send to client %lld: %s\n", __func__, self->id,
+                 ptr );
 #endif
         if ( ( i = send( self->sock, ptr, length, 0 ) ) < 0 )
             exit_with_error( __func__, "send() failed" );
@@ -86,18 +125,49 @@ int Socket_send( Socket* self, const char* buffer, size_t length ) {
     return 0;
 }
 
+/* Broadcast message to socket in link list */
+int Socket_broadcast( Socket* self, Socket* start, const char* buffer,
+                      size_t length ) {
+    if ( start == self ) start = start->next;
+
+#ifdef DEBUG
+    fprintf( stderr, "[%s] broadcast: %s\n", __func__, buffer );
+#endif
+
+    int result = 0;
+
+    while ( start ) {
+        result = Socket_send( start, buffer, length ) | result;
+        start  = start->next;
+    }
+
+    return result;
+}
+
 /* receive data */
-#define RCVBUFSIZE 32
-int Socket_receive( Socket* self ) {
+#define RCVBUFSIZE 255
+int Socket_receive( Socket* self, char** buffer, size_t* length ) {
+    if ( self->sock_closed ) return 1;
+
     ssize_t bytes_received;
-    char    buffer[RCVBUFSIZE];
-    if ( ( bytes_received = recv( self->sock, buffer, RCVBUFSIZE - 1, 0 ) ) <=
-         0 )
+    char    rcv_buffer[RCVBUFSIZE];
+    if ( ( bytes_received =
+               recv( self->sock, rcv_buffer, RCVBUFSIZE - 1, 0 ) ) < 0 )
         exit_with_error( __func__,
                          "recv() failed or connection closed prematurely" );
+
+    if ( bytes_received == 0 ) {
+        Socket_close( self );
+        return 1;
+    }
+
+    *length = bytes_received & 0xFF;
+    *buffer = (char*)realloc( *buffer, *length );
+    memcpy( *buffer, rcv_buffer, *length );
+    ( *buffer )[*length - 1] = '\0';
+
 #ifdef DEBUG
-    buffer[bytes_received - 1] = '\0';
-    fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
+    fprintf( stderr, "[%s] received: %s\n", __func__, *buffer );
 #endif
     return 0;
 }
@@ -123,15 +193,23 @@ int Socket_accept( Socket* self ) {
 
 typedef struct Socket_response_thread_t {
     pthread_t pid;
-    Socket* self;
-    Socket* client;
+    Socket*   self;
+    Socket*   client;
     bool ( *handler )( Socket* self, Socket* client );
 } Socket_response_thread_t;
 
 void* Socket_response_thread( void* info ) {
     Socket_response_thread_t* ptr = (Socket_response_thread_t*)info;
+#ifdef DEBUG
+    fprintf( stderr, "[%s] thread %lu started.\n", __func__,
+             (unsigned long)ptr->pid );
+#endif
     while ( ( ptr->handler )( ptr->self, ptr->client ) )
         ;
+#ifdef DEBUG
+    fprintf( stderr, "[%s] thread %lu terminated.\n", __func__,
+             (unsigned long)ptr->pid );
+#endif
     return NULL;
 }
 
@@ -143,35 +221,53 @@ typedef struct Socket_handle_thread_t {
 void* Socket_handle_thread( void* info ) {
     Socket_handle_thread_t* ptr = (Socket_handle_thread_t*)info;
     size_t                  clntLen;
-    Socket                  clientSocket;
-    initialize_socket( &clientSocket );
+    Socket*                 clientSocket;
 
-    Socket_response_thread_t* clients = NULL;
-    size_t client_number = 0;
+    Socket_response_thread_t* clients       = NULL;
+    size_t                    client_number = 0;
 
     for ( ;; ) /* Run forever */
     {
+        clientSocket = (Socket*)calloc( 1, sizeof( Socket ) );
+        initialize_socket( clientSocket );
         /* Set the size of the in-out parameter */
-        clntLen = sizeof( clientSocket.server_addr );
+        clntLen = sizeof( clientSocket->server_addr );
 
         /* Wait for a client to connect */
-        if ( ( clientSocket.sock =
+        if ( ( clientSocket->sock =
                    accept( ptr->self->sock,
-                           (struct sockaddr*)&( ptr->self->server_addr ),
+                           (struct sockaddr*)&( clientSocket->server_addr ),
                            (socklen_t*)&clntLen ) ) < 0 )
             exit_with_error( __func__, "accept() failed" );
 
-        /* clntSock is connected to a client! */
-
-        printf( "Handling client %s\n",
-                inet_ntoa( clientSocket.server_addr.sin_addr ) );
+        fprintf( stderr, "[%s] Handling client %s\n", __func__,
+                 inet_ntoa( clientSocket->server_addr.sin_addr ) );
 
         client_number++;
-        //clients = (Socket_response_thread_t*);
+        clients = (Socket_response_thread_t*)realloc(
+            clients, client_number * sizeof( Socket_response_thread_t ) );
 
-        //( ptr->handler )( ptr->self, &clientSocket );
-        //info->handler = (bool ( * )( Socket * self, Socket * client ))handler;
+        Socket_response_thread_t* client = &clients[client_number - 1];
+
+        client->handler =
+            (bool ( * )( Socket * self, Socket * client ))ptr->handler;
+        client->self   = ptr->self;
+        client->client = clientSocket;
+
+        Socket* list              = ptr->self;
+        while ( list->next ) list = list->next;
+        list->next                = clientSocket;
+
+        pthread_create( &client->pid, 0, Socket_response_thread, client );
     }
+
+    for ( size_t i = 0; i < client_number; i++ ) {
+        pthread_join( clients[i].pid, NULL );
+    }
+
+    /* TODO: destroy linked list */
+
+    free( clients );
     return NULL;
 }
 
@@ -183,12 +279,9 @@ int Socket_handle( Socket* self, void* handler ) {
     info->handler = handler;
 
     pthread_t pid;
-    return pthread_create( &pid, 0, Socket_handle_thread, info );
-}
+    int       result = pthread_create( &pid, 0, Socket_handle_thread, info );
 
-int Socket_close( Socket* self ) {
-    close( self->sock );
-    return 0;
+    return result;
 }
 
 int Socket_destroy( Socket* self ) {
