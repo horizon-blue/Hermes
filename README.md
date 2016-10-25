@@ -1,26 +1,75 @@
-Kilo
+mKilo
 ===
 
-Kilo is a small text editor in less than 1K lines of code (counted with cloc).
+### Compile
 
-A screencast is available here: https://asciinema.org/a/90r2i9bq8po03nazhqtsifksb
+```bash
+# compile release version
+$ make server
+$ make client
 
-Usage: kilo `<filename>`
+# compile debug version
+$ make server-debug
+$ make client-debug
+```
 
-Keys:
+### Usage
 
-    CTRL-S: Save
-    CTRL-Q: Quit
-    CTRL-F: Find string in file (ESC to exit search, arrows to navigate)
+Run server
 
-Kilo does not depend on any library (not even curses). It uses fairly standard
-VT100 (and similar terminals) escape sequences. The project is in alpha
-stage and was written in just a few hours taking code from my other two
-projects, load81 and linenoise.
+```bash
+$ ./server [port]
+```
 
-People are encouraged to use it as a starting point to write other editors
-or command line interfaces that are more advanced than the usual REPL
-style CLI.
+Test echo server
 
-Kilo was written by Salvatore Sanfilippo aka antirez and is released
-under the BSD 2 clause license.
+```bash
+$ telnet [ip] [port]
+```
+
+### Useful commands
+
+* exit
+
+    Close connection.
+
+    ```
+    exit
+    ```
+
+### File
+
+```
+├── LICENSE                 # License file
+├── Makefile                # Makefile
+├── README.md
+├── TODO
+├── client.c                # Client main file
+├── client.h
+├── deps
+│   ├── api.c               # API used and parsing functions
+│   ├── api.h
+│   ├── configfile.c        # Read configure file
+│   ├── configfile.h
+│   ├── error.c             # Global error code and handler
+│   ├── error.h
+│   ├── socket.c            # Pack system socket
+│   ├── socket.h
+│   ├── util.c              # Useful utilities
+│   └── util.h
+├── flow.pdf                # System flow chart
+├── kilo.c
+├── server.c                # Server main file
+├── server.h
+└── tags                    # ctags
+```
+
+### Contributor
+
+* [jamsman94](https://github.com/jamsman94)
+* [Horizon-Blue](https://github.com/Horizon-Blue)
+* [Rijn](https://github.com/rijn)
+
+### Inspired by Kilo
+
+[https://github.com/antirez/kilo](https://github.com/antirez/kilo)
