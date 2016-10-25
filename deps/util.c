@@ -1,14 +1,23 @@
-#define _POSIX_C_SOURCE 199309L
+/* Util.c
+ * mKilo
+ * Rijn
+ */
 
+/* Assert macro */
+#if !defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE < 199309L
+#define _POSIX_C_SOURCE 199309L
+#endif
+
+#include <assert.h>
+#ifndef __MACH__
+#include <features.h>
+#endif
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include <time.h>
-#include <assert.h>
-#include <features.h>
 #include <unistd.h>
-
 
 #ifdef __MACH__
 #include <mach/clock.h>
@@ -34,10 +43,9 @@ uint64_t get_timestamp() {
     ts.tv_sec  = mts.tv_sec;
     ts.tv_nsec = mts.tv_nsec;
 #else
-    assert(_POSIX_C_SOURCE >= 199309L);
+    assert( _POSIX_C_SOURCE >= 199309L );
     clock_gettime( CLOCK_REALTIME, &ts );
 #endif
 
     return 1000000000L * ts.tv_sec + ts.tv_nsec;
 }
-
