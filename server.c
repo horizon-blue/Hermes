@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "socket.h"
 #include "queue.h"
+#include "socket.h"
 #include "util.h"
 
 #include "server.h"
@@ -16,15 +16,27 @@ void int_handler( int dummy ) {
     keep_running = 0;
 }
 
+static Queue _q;
+
+typedef struct info_t {
+    uint64_t       timestamp;
+    char*          buffer;
+    size_t         length;
+    struct in_addr addr;
+} info_t;
+
 typedef union {
-    uint8_t (*funcptr)(Socket* self, Socket* client);
-    unsigned char *objptr;
+    uint8_t ( *funcptr )( Socket* self, Socket* client );
+    unsigned char* objptr;
 } echo_u;
 
 uint8_t echo( Socket* self, Socket* client ) {
     static char* buffer = NULL;
     size_t       length;
-    if ( client->receive( client, &buffer, &length ) ) return 0;
+
+    if ( client->receive( client, &buffer, &length ) ) {
+        return 0;
+    }
 
 #ifdef DEBUG
     fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
@@ -37,14 +49,50 @@ uint8_t echo( Socket* self, Socket* client ) {
         self->broadcast( self, self, "\nSomeone left.\r\n", 16 );
         return 1;
     }
+
+    info_t* _i    = (info_t*)malloc( sizeof( info_t ) );
+    _i->timestamp = get_timestamp();
+    _i->buffer    = (char*)malloc( ( length + 1 ) * sizeof( char ) );
+    memcpy( _i->buffer, buffer, length + 1 );
+    _i->length = length;
+    memcpy( &( _i->addr ), &( client->server_addr.sin_addr ),
+            sizeof( struct in_addr ) );
+
+    _q.push( &_q, (void*)_i );
+
     self->broadcast( self, self, buffer, length );
     return 1;
 }
 
+void monitor( Queue* q ) {
+    clear_screen();
+    printf( "\r[%llu] Queue pushed\n", get_timestamp() );
+    printf( "[%s] Queue size = %lu\n", __func__, q->size( q ) );
+    printf( "----Queue----\n" );
+    void* head = q->get_head_node( q );
+
+    for ( ; head != NULL; head = q->get_next( q, head ) ) {
+        if ( head ) {
+            info_t* msg = (info_t*)q->get_value( q, head );
+            fflush( stdout );
+            if ( msg )
+                printf( "%s \t %llu: %s\n", inet_ntoa( msg->addr ),
+                        msg->timestamp, msg->buffer );
+        }
+    }
+
+    printf( "-------------\n" );
+    return;
+}
+
 int main( int argc, char* argv[] ) {
-    fprintf( stderr, "%llu: starting server...\n", (long long unsigned int)get_timestamp() );
+    fprintf( stderr, "%llu: starting server...\n",
+             (long long unsigned int)get_timestamp() );
 
     signal( SIGINT, int_handler );
+
+    initialize_queue( &_q );
+    _q.live( &_q, QUEUE_PUSH, monitor );
 
     Socket _s;
     initialize_socket( &_s );

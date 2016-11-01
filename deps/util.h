@@ -5,5 +5,6 @@
 #include <stdint.h>
 
 uint64_t get_timestamp();
+void     clear_screen();
 
 #endif

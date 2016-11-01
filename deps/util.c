@@ -4,7 +4,7 @@
  */
 
 /* Assert macro */
-#if !defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE < 199309L
+#if !defined( _POSIX_C_SOURCE ) && _POSIX_C_SOURCE < 199309L
 #define _POSIX_C_SOURCE 199309L
 #endif
 
@@ -48,4 +48,9 @@ uint64_t get_timestamp() {
 #endif
 
     return 1000000000L * ts.tv_sec + ts.tv_nsec;
+}
+
+void clear_screen() {
+    const char* CLEAR_SCREE_ANSI = "\033[1;1H\033[2J";
+    write( STDOUT_FILENO, CLEAR_SCREE_ANSI, 12 );
 }
