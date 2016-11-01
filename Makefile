@@ -15,7 +15,7 @@ ROOT_DIR=$(shell pwd)
 
 CXX = gcc
 LD = gcc
-OBJS_DEP = api.o socket.o util.o error.o configfile.o
+OBJS_DEP = api.o socket.o util.o error.o configfile.o queue.o
 VPATH = ./deps
 OBJS_SERVER = server.o
 OBJS_CLIENT = client.o
