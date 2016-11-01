@@ -201,12 +201,18 @@ typedef struct Socket_response_thread_t {
 void* Socket_response_thread( void* info ) {
     Socket_response_thread_t* ptr = (Socket_response_thread_t*)info;
 
+// pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
 #ifdef DEBUG
     fprintf( stderr, "[%s] thread %lu started.\n", __func__,
              (unsigned long)ptr->pid );
 #endif
-    while ( ( ptr->handler )( ptr->self, ptr->client ) )
-        ;
+    bool result = 1;
+    while ( result ) {
+        // pthread_mutex_lock(&m);
+        result = ( ptr->handler )( ptr->self, ptr->client );
+        // pthread_mutex_unlock(&m);
+    }
 #ifdef DEBUG
     fprintf( stderr, "[%s] thread %lu terminated.\n", __func__,
              (unsigned long)ptr->pid );
@@ -229,8 +235,8 @@ void* Socket_handle_thread( void* info ) {
     size_t                  clntLen;
     Socket*                 clientSocket;
 
-    Socket_response_thread_t* clients       = NULL;
-    size_t                    client_number = 0;
+    Socket_response_thread_t** clients       = NULL;
+    size_t                     client_number = 0;
 
     for ( ;; ) /* Run forever */
     {
@@ -250,10 +256,12 @@ void* Socket_handle_thread( void* info ) {
                  inet_ntoa( clientSocket->server_addr.sin_addr ) );
 
         client_number++;
-        clients = (Socket_response_thread_t*)realloc(
-            clients, client_number * sizeof( Socket_response_thread_t ) );
+        clients = (Socket_response_thread_t**)realloc(
+            clients, client_number * sizeof( Socket_response_thread_t* ) );
 
-        Socket_response_thread_t* client = &clients[client_number - 1];
+        Socket_response_thread_t* client = clients[client_number - 1] =
+            (Socket_response_thread_t*)malloc(
+                sizeof( Socket_response_thread_t ) );
 
         handler_u _u;
         _u.objptr       = ptr->handler;
@@ -269,7 +277,7 @@ void* Socket_handle_thread( void* info ) {
     }
 
     for ( size_t i = 0; i < client_number; i++ ) {
-        pthread_join( clients[i].pid, NULL );
+        pthread_join( clients[i]->pid, NULL );
     }
 
     /* TODO: destroy linked list */

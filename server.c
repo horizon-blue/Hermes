@@ -42,6 +42,8 @@ uint8_t echo( Socket* self, Socket* client ) {
     fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
 #endif
 
+    if ( !buffer ) return 1;
+
     if ( memcmp( buffer, "exit", 4 ) == 0 ) {
         client->send( client, "\nGoodbye.\r\n", 11 );
         client->close( self, client );
@@ -52,21 +54,21 @@ uint8_t echo( Socket* self, Socket* client ) {
 
     info_t* _i    = (info_t*)malloc( sizeof( info_t ) );
     _i->timestamp = get_timestamp();
-    _i->buffer    = (char*)malloc( ( length + 1 ) * sizeof( char ) );
-    memcpy( _i->buffer, buffer, length + 1 );
+    _i->buffer    = (char*)malloc( ( length ) * sizeof( char ) );
+    memcpy( _i->buffer, buffer, length );
     _i->length = length;
     memcpy( &( _i->addr ), &( client->server_addr.sin_addr ),
             sizeof( struct in_addr ) );
 
+    self->broadcast( self, self, buffer, length );
+
     _q.push( &_q, (void*)_i );
 
-    self->broadcast( self, self, buffer, length );
     return 1;
 }
 
 void monitor( Queue* q ) {
     clear_screen();
-    printf( "\r[%llu] Queue pushed\n", get_timestamp() );
     printf( "[%s] Queue size = %lu\n", __func__, q->size( q ) );
     printf( "----Queue----\n" );
     void* head = q->get_head_node( q );
@@ -77,7 +79,7 @@ void monitor( Queue* q ) {
             fflush( stdout );
             if ( msg )
                 printf( "%s \t %llu: %s\n", inet_ntoa( msg->addr ),
-                        msg->timestamp, msg->buffer );
+                        (long long unsigned int)msg->timestamp, msg->buffer );
         }
     }
 
