@@ -7,6 +7,9 @@
 #if !defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE < 199309L
 #define _POSIX_C_SOURCE 199309L
 #endif
+#ifndef _BSD_SOURCE
+#define _BSD_SOURCE
+#endif
 
 #include <assert.h>
 #ifndef __MACH__
@@ -19,8 +22,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -132,13 +135,13 @@ unsigned char *base64_decode(const char *data,
 
     for(size_t i = 0, j = 0; i < input_length;) {
         uint32_t sextet_a =
-            data[i] == '=' ? 0 & i++ : decoding_table[(int)data[i++]];
+            data[i] == '=' ? 0 & i++ : (unsigned)decoding_table[(int)data[i++]];
         uint32_t sextet_b =
-            data[i] == '=' ? 0 & i++ : decoding_table[(int)data[i++]];
+            data[i] == '=' ? 0 & i++ : (unsigned)decoding_table[(int)data[i++]];
         uint32_t sextet_c =
-            data[i] == '=' ? 0 & i++ : decoding_table[(int)data[i++]];
+            data[i] == '=' ? 0 & i++ : (unsigned)decoding_table[(int)data[i++]];
         uint32_t sextet_d =
-            data[i] == '=' ? 0 & i++ : decoding_table[(int)data[i++]];
+            data[i] == '=' ? 0 & i++ : (unsigned)decoding_table[(int)data[i++]];
 
         uint32_t triple = (sextet_a << 3 * 6) + (sextet_b << 2 * 6) +
                           (sextet_c << 1 * 6) + (sextet_d << 0 * 6);
