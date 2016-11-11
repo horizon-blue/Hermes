@@ -111,7 +111,7 @@ void processor ( Queue * q )
     switch ( api_parser ( command->buffer, command->length ) )
     {
         case API_GET_REMOTE_FILE_LIST:
-        printf("[%s] fetching file list\n", __func__);
+            printf("[%s] fetching file list from %s\n", __func__, api_get_key("BASE"));
             break;
     }
     #ifdef DEBUG

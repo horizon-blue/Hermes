@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <string.h>
 
+#include "util.h"
+
 #include "api.h"
 
 typedef struct pair_t
@@ -17,7 +19,7 @@ static ssize_t item_num;
 
 #define ITEM_SEPERATOR '@'
 #define START_END_INDICATOR '*'
-#define KEY_VALUE_SEPERATOR '='
+#define KEY_VALUE_SEPERATOR '`'
 
 void api_initialize()
 {
@@ -27,7 +29,13 @@ void api_initialize()
 
 int api_clear()
 {
-    /* TODO: clear storage */
+    for ( ssize_t i = 0; i < item_num; i++ )
+    {
+        free ( items[i].key );
+        free ( items[i].value );
+    }
+
+    free(items);
     items = NULL;
     item_num = 0;
 
@@ -36,6 +44,14 @@ int api_clear()
 
 char * api_get_key ( char * key )
 {
+    for ( ssize_t i = 0; i < item_num; i++ )
+    {
+        if ( strcmp ( key, items[i].key ) == 0 )
+        {
+            return items[i].value;
+        }
+    }
+
     return NULL;
 }
 
@@ -63,15 +79,28 @@ int api_generator ( char ** buffer, ssize_t * length, char api )
     for ( ssize_t i = 0; i < item_num; i++ )
     {
         /* TODO: Encrypt data */
-        char * key = items[i].key;
-        char * value = items[i].value;
-        *buffer = realloc ( *buffer, len + strlen ( key ) + strlen ( value ) + 2 );
+        size_t data_len = 0;
+        char * data = NULL;
+
+        *buffer = realloc ( *buffer, len + 1 );
         ( *buffer ) [len++] = ITEM_SEPERATOR;
-        memcpy ( *buffer + len, key, strlen ( key ) );
-        len += strlen ( key );
+
+        data = base64_encode ( ( unsigned char * ) items[i].key,
+                               strlen ( items[i].key ), &data_len );
+        *buffer = realloc ( *buffer, len + data_len + 1 );
+        memcpy ( *buffer + len, data, data_len );
+        len += data_len;
+        free ( data );
+
+        *buffer = realloc ( *buffer, len + 1 );
         ( *buffer ) [len++] = KEY_VALUE_SEPERATOR;
-        memcpy ( *buffer + len, value, strlen ( value ) );
-        len += strlen ( value );
+
+        data = base64_encode ( ( unsigned char * ) items[i].value,
+                               strlen ( items[i].value ), &data_len );
+        *buffer = realloc ( *buffer, len + data_len + 1 );
+        memcpy ( *buffer + len, data, data_len );
+        len += data_len;
+        free ( data );
     }
 
     *buffer = realloc ( *buffer, len + 2 );
@@ -84,18 +113,70 @@ int api_generator ( char ** buffer, ssize_t * length, char api )
 
 char api_parser ( char * buffer, ssize_t length )
 {
-	length -= 1;
-	#ifdef DEBUG
-	printf("\t[%s] buffer[0] = %c, len = %d, buffer[len] = %c\n", 
-		__func__, buffer[0], (int)length, buffer[length-1]);
-	#endif
+    length -= 1;
+    #ifdef DEBUG
+    printf ( "\t[%s] buffer[0] = %c, len = %d, buffer[len] = %c\n",
+             __func__, buffer[0], ( int ) length, buffer[length - 1] );
+    #endif
+
     if ( buffer == NULL || buffer[0] != START_END_INDICATOR
-            || buffer[length-1] != START_END_INDICATOR )
+            || buffer[length - 1] != START_END_INDICATOR )
     {
         return API_NOP;
     }
 
     api_clear();
+
+    ssize_t ptr = 2, key_start = 0, value_start = 0;
+
+    for ( ;; )
+    {
+        if ( buffer[ptr] == ITEM_SEPERATOR || buffer[ptr] == START_END_INDICATOR )
+        {
+            if ( key_start != 0 )
+            {
+                /* process last item */
+                char * data = NULL;
+
+                data = malloc ( value_start - key_start );
+                memcpy ( data, buffer + key_start + 1, value_start - key_start - 1 );
+                data[value_start - key_start - 1] = '\0';
+
+                char * key = ( char * ) base64_decode (
+                                 data, value_start - key_start - 1, ( size_t * ) NULL );
+
+                free ( data );
+
+                data = malloc ( ptr - value_start );
+                memcpy ( data, buffer + value_start + 1, ptr - value_start - 1 );
+                data[ptr - value_start - 1] = '\0';
+
+                char * value = ( char * ) base64_decode (
+                                   data, ptr - value_start - 1, ( size_t * ) NULL );
+
+                free ( data );
+
+                api_set_key ( key, value );
+
+                free ( key );
+                free ( value );
+            }
+
+            key_start = ptr;
+        }
+
+        if ( buffer[ptr] == KEY_VALUE_SEPERATOR )
+        {
+            value_start = ptr;
+        }
+
+        if ( buffer[ptr] == START_END_INDICATOR )
+        {
+            break;
+        }
+
+        ptr++;
+    }
 
     return buffer[1];
 }

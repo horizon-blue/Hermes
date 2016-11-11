@@ -709,6 +709,7 @@ int main ( int argc, char ** argv )
     api_clear();
     char * command = NULL;
     ssize_t command_len = 0;
+    api_set_key("BASE", "/");
     api_generator ( &command, &command_len, API_GET_REMOTE_FILE_LIST );
     _s.send ( &_s, command, command_len+1 );
 
