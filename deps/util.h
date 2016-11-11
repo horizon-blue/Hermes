@@ -14,4 +14,6 @@ unsigned char * base64_decode ( const char * data,
                                 size_t input_length,
                                 size_t * output_length );
 
+char** get_file_list(const char* base_directory);
+
 #endif

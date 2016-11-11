@@ -6,7 +6,8 @@
 enum API_LIST
 {
 	API_NOP = 0,
-    API_GET_REMOTE_FILE_LIST = 65
+    API_GET_REMOTE_FILE_LIST = 65,
+    API_RESPOSE_REMOTE_FILE_LIST = 66,
 };
 
 void api_initialize();
