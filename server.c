@@ -83,6 +83,10 @@ void monitor( Queue* q ) {
         }
     }
 
+    /* processor */
+
+
+
     printf( "-------------\n" );
     return;
 }
@@ -109,7 +113,7 @@ int main( int argc, char* argv[] ) {
     _s.handle( &_s, _u.objptr );
 
     while ( keep_running )
-        ;
+        sleep(1);
 
     /* TODO destroy handler thread */
 
