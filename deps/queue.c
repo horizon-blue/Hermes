@@ -253,9 +253,9 @@ QueueNode* Queue_get_next( struct Queue* self, QueueNode* current ) {
 }
 
 void* Queue_get_value( struct Queue* self, QueueNode* current ) {
-// #ifdef DEBUG
-//     printf( "[%s] current addr %p\n", __func__, current );
-// #endif
+    // #ifdef DEBUG
+    //     printf( "[%s] current addr %p\n", __func__, current );
+    // #endif
     return current ? current->value : NULL;
 }
 

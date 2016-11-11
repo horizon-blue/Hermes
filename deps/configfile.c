@@ -1,3 +1,4 @@
 #include "configfile.h"
 
-void empty_configfile(){}
+void empty_configfile() {
+}

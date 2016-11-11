@@ -19,6 +19,7 @@ OBJS_DEP = api.o socket.o util.o error.o configfile.o queue.o
 VPATH = ./deps
 OBJS_SERVER = server.o
 OBJS_CLIENT = client.o
+OBJS_TEST = test.o
 OBJS_DIR = .objs
 OPTIMIZE = off
 INCLUDES = -I./includes/ -I$(OBJS_DIR)/ -Ideps/
@@ -39,10 +40,13 @@ $(warning Invalid value specified for OPTIMIZE. Should be on or off)
 CXXFLAGS += -g -O0
 endif
 
-.PHONY: all server client
+.PHONY: all server client test
 all: clean pre-compile server-release client echo-done
 server: clean pre-compile server-release echo-done
 client: clean pre-compile client-release echo-done
+test: clean pre-compile test-debug echo-done
+	clear
+	@./test
 
 pre-compile: echo-compile $(OBJS_DIR)
 
@@ -75,6 +79,10 @@ client-release: $(OBJS_DEP:%.o=$(OBJS_DIR)/%.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%.
 client-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%-debug.o)
 	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o client
+
+test-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_TEST:%.o=$(OBJS_DIR)/%-debug.o)
+	@echo -e " ld\t$@"
+	@$(LD) $^ $(LDFLAGS) -o test
 
 .PHONY: kilo
 kilo: kilo.c
