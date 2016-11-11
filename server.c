@@ -24,6 +24,7 @@ typedef struct info_t {
     char*          buffer;
     size_t         length;
     struct in_addr addr;
+    Socket*        client;
 } info_t;
 
 typedef union {
@@ -62,10 +63,12 @@ uint8_t echo( Socket* self, Socket* client ) {
     _i->length = length;
     memcpy( &( _i->addr ), &( client->server_addr.sin_addr ),
             sizeof( struct in_addr ) );
+    _i->client = client;
 
-    self->broadcast( self, self, buffer, length );
+    // self->broadcast( self, self, buffer, length );
 
     _q.push( &_q, (void*)_i );
+    /* TODO: push entire api into queue */
 
     return 1;
 }
@@ -101,6 +104,19 @@ void processor( Queue* q ) {
         case API_GET_REMOTE_FILE_LIST:
             printf( "[%s] fetching file list from %s\n", __func__,
                     api_get_key( "BASE" ) );
+
+            char** list = get_file_list( "." );
+            char*  buf  = str_implode( '&', list );
+            char*   c     = NULL;
+            ssize_t c_len = 0;
+            api_clear();
+            api_set_key( "DIR", buf );
+            api_generator( &c, &c_len, API_RESPOSE_REMOTE_FILE_LIST );
+            command->client->send( command->client, c, c_len + 1 );
+            free( c );
+            free( buf );
+            destroy_array( &list );
+
             break;
     }
 #ifdef DEBUG

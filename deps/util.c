@@ -212,7 +212,7 @@ char **get_file_list( const char *base_directory ) {
 char *str_implode( char separator, char **array ) {
     char *  str = NULL;
     ssize_t len = 0;
-    for ( char **ptr = array; *ptr != NULL; ptr++ ) {
+    for ( char **ptr = array; ptr != NULL && *ptr != NULL; ptr++ ) {
         str = (char *)realloc( str, len + strlen( *ptr ) + 1 );
         memcpy( str + len, *ptr, strlen( *ptr ) );
         len += strlen( *ptr );
@@ -230,14 +230,14 @@ char **str_explode( char separator, char *string ) {
     char **array = NULL;
     char * next  = NULL;
 
-    while ( ( next = strchr( string, separator ) ) != NULL &&
+    while ( string != NULL && ( next = strchr( string, separator ) ) != NULL &&
             *( string ) != '\0' ) {
         array = (char **)realloc( array, ( index + 1 ) * sizeof( char * ) );
         uint64_t len = (uint64_t)next - (uint64_t)string;
         array[index] = (char *)malloc( len + 1 );
         memcpy( array[index], string, len );
         array[index][len] = '\0';
-        string = next + 1;
+        string            = next + 1;
         index++;
     }
 
@@ -246,3 +246,14 @@ char **str_explode( char separator, char *string ) {
 
     return array;
 }
+
+void destroy_array( char ***array ) {
+    if ( array == NULL || *array == NULL ) return;
+    for ( ssize_t i = 0; ( *array )[i]; i++ ) {
+        free( ( *array )[i] );
+    }
+    free( *array );
+    *array = NULL;
+    return;
+}
+

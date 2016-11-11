@@ -20,4 +20,6 @@ char* str_implode( char separator, char** array );
 /* split string to array */
 char** str_explode( char separator, char* string );
 
+void destroy_array( char ***array );
+
 #endif

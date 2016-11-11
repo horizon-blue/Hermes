@@ -577,12 +577,16 @@ void* message_handler( void* ptr ) {
 
     while ( 1 ) {
         if ( self->receive( self, &buffer, &length ) ) {
-            clear();
+            // clear();
             return NULL;
         }
 
+        /* TODO: concatrate buffer and process api */
+
 #ifdef DEBUG
-        fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
+        /*
+         *fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
+         */
 #endif
     }
 
@@ -635,16 +639,19 @@ int main( int argc, char** argv ) {
     api_generator( &command, &command_len, API_GET_REMOTE_FILE_LIST );
     _s.send( &_s, command, command_len + 1 );
 
-    // initEditor();
-    // enableRawMode ( STDIN_FILENO );
-    // editorSetStatusMessage (
-    //     "HELP: Ctrl-Q = quit | Ctrl-W = change windows" );
+    /*
+     *    initEditor();
+     *    enableRawMode( STDIN_FILENO );
+     *    editorSetStatusMessage( "HELP: Ctrl-Q = quit | Ctrl-W = change
+     * windows" );
+     *
+     *    while ( 1 ) {
+     *        editorRefreshScreen();
+     *        editorProcessKeypress( STDIN_FILENO );
+     *    }
+     */
 
-    // while ( 1 )
-    // {
-    //     editorRefreshScreen();
-    //     editorProcessKeypress ( STDIN_FILENO );
-    // }
+    while ( 1 ) sleep( 1 );
 
     clear();
 
