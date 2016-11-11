@@ -27,6 +27,7 @@ typedef struct Queue {
     int ( *push )( struct Queue* self, void* element );
     void* ( *peek )( struct Queue* self );
     void* ( *pull )( struct Queue* self );
+    void* ( *bottom )( struct Queue* self );
     ssize_t ( *size )( struct Queue* self );
     int ( *empty )( struct Queue* self );
     struct QueueNode* ( *search )( struct Queue* self, void* value,

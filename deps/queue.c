@@ -36,6 +36,7 @@ typedef struct QueueNode    QueueNode;
 int Queue_push( struct Queue* self, void* element );
 void* Queue_peek( struct Queue* self );
 void* Queue_pull( struct Queue* self );
+void* Queue_bottom( struct Queue* self );
 ssize_t Queue_size( struct Queue* self );
 int Queue_empty( struct Queue* self );
 QueueNode* Queue_search( struct Queue* self, void* value, QueueNode* start );
@@ -70,6 +71,7 @@ Queue* initialize_queue( Queue* ptr ) {
     ptr->push          = Queue_push;
     ptr->peek          = Queue_peek;
     ptr->pull          = Queue_pull;
+    ptr->bottom        = Queue_bottom;
     ptr->size          = Queue_size;
     ptr->empty         = Queue_empty;
     ptr->search        = Queue_search;
@@ -165,6 +167,20 @@ void* Queue_pull( struct Queue* self ) {
     return result;
 }
 
+void* Queue_bottom( struct Queue* self ) {
+    if ( self == NULL || self->p == NULL ) {
+        return NULL;
+    }
+
+    pthread_mutex_lock( &( self->p->m ) );
+
+    void* result = self->p->size > 0 ? self->p->tail->value : NULL;
+
+    pthread_mutex_unlock( &( self->p->m ) );
+
+    return result;
+}
+
 ssize_t Queue_size( struct Queue* self ) {
     if ( self == NULL || self->p == NULL ) {
         return QUEUE_FALSE;
@@ -237,9 +253,9 @@ QueueNode* Queue_get_next( struct Queue* self, QueueNode* current ) {
 }
 
 void* Queue_get_value( struct Queue* self, QueueNode* current ) {
-#ifdef DEBUG
-    printf( "[%s] current addr %p\n", __func__, current );
-#endif
+// #ifdef DEBUG
+//     printf( "[%s] current addr %p\n", __func__, current );
+// #endif
     return current ? current->value : NULL;
 }
 
