@@ -164,6 +164,9 @@ unsigned char *base64_decode(const char *data,
     return decoded_data;
 }
 
+static int file_name_cmp(const void *f1, const void *f2) {
+    return strcmp(*(char *const *)f1, *(char *const *)f2);
+}
 // not thread safe
 char **get_file_list(const char *base_directory) {
     DIR *the_directory = opendir(base_directory);
@@ -181,8 +184,19 @@ char **get_file_list(const char *base_directory) {
     struct dirent *curr_file = NULL;
     char **name_of_files = (char **)malloc(sizeof(char *) * file_counts + 1);
     size_t index         = 0;
-    while((curr_file           = readdir(the_directory)))
-        name_of_files[index++] = strdup(curr_file->d_name);
+    while((curr_file = readdir(the_directory))) {
+        if(curr_file->d_type == DT_DIR) {
+            size_t name_len      = strlen(curr_file->d_name);
+            name_of_files[index] = malloc(name_len + 2);
+            memcpy(name_of_files[index], curr_file->d_name, name_len);
+            name_of_files[index][name_len]     = '/';  // for directory
+            name_of_files[index][name_len + 1] = '\0';
+        } else
+            name_of_files[index] = strdup(curr_file->d_name);
+        ++index;
+    }
     name_of_files[file_counts] = NULL;
+
+    qsort(name_of_files, file_counts, sizeof(char *), file_name_cmp);
     return name_of_files;
 }
