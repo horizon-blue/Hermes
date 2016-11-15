@@ -594,7 +594,6 @@ void editorMoveCursor( int key ) {
 void editorProcessKeypress( int fd ) {
     /* When the file is modified, requires Ctrl-q to be pressed N times
      * before actually quitting. */
-    static int quit_times = KILO_QUIT_TIMES;
 
     int c = editorReadKey( fd );
 
@@ -668,8 +667,6 @@ void editorProcessKeypress( int fd ) {
         default:
             break;
     }
-
-    quit_times = KILO_QUIT_TIMES; /* Reset it to the original value. */
 }
 
 void initEditor( void ) {
@@ -771,7 +768,7 @@ int main( int argc, char** argv ) {
     scanf( "%s", server_ip );
 
     printf( "Server port: " );
-    scanf( "%hd", &server_port );
+    scanf( "%hu", &server_port );
 
 #ifdef DEBUG
     printf( "[%s] server_ip [%s]\n", __func__, server_ip );
@@ -820,7 +817,7 @@ static void clear() {
 
     api_clear();
 
-    if ( message_handler_thread != NULL ) {
+    if ( message_handler_thread != 0 ) {
         pthread_kill( message_handler_thread, SIGKILL );
     }
 
