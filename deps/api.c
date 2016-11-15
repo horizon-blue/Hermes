@@ -179,8 +179,6 @@ char* api_divider( char** buffer, ssize_t* length ) {
 #ifdef DEBUG
     fprintf( stderr, "[%s] old buffer = %s, len = %lu\n", __func__, *buffer,
              *length );
-    fprintf( stderr, "[%s] calculate diff = %llu\n", __func__,
-             (uint64_t)split - (uint64_t)(*buffer) + 2 );
 #endif
 
     ssize_t api_length = (uint64_t)split - (uint64_t)(*buffer) + 2;
