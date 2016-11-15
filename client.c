@@ -37,6 +37,14 @@ typedef struct dir_t {
 
 } dir_t;
 
+typedef struct erow {
+    int   idx;    /* Row index in the file, zero-based. */
+    int   size;   /* Size of the row, excluding the null term. */
+    int   rsize;  /* Size of the rendered row. */
+    char* chars;  /* Row content. */
+    char* render; /* Row content "rendered" for screen (for TABs). */
+} erow;
+
 struct editorConfig {
     int                  cx, cy;     /* Cursor x and y position in characters */
     int                  rowoff;     /* Offset of row displayed. */
@@ -51,9 +59,9 @@ struct editorConfig {
     time_t               statusmsg_time;
     struct editorSyntax* syntax; /* Current syntax highlight, or NULL. */
 
-    int    mode;
-    int    numfiles;
-    dir_t* directory;
+    int   mode;
+    erow* dir;
+    int   numdir;
 };
 
 static struct editorConfig E;
@@ -327,6 +335,54 @@ failed:
     return -1;
 }
 
+/* ======================= Editor rows implementation ======================= */
+
+/* Update the rendered version and the syntax highlight of a row. */
+void editorUpdateRow( erow* row ) {
+    int tabs = 0, nonprint = 0, j, idx;
+
+    /* Create a version of the row we can directly print on the screen,
+     *      * respecting tabs, substituting non printable characters with '?'.
+     */
+    free( row->render );
+    for ( j = 0; j < row->size; j++ )
+        if ( row->chars[j] == TAB ) tabs++;
+
+    row->render = (char*)malloc( row->size + tabs * 8 + nonprint * 9 + 1 );
+    idx         = 0;
+    for ( j = 0; j < row->size; j++ ) {
+        if ( row->chars[j] == TAB ) {
+            row->render[idx++]                                = ' ';
+            while ( ( idx + 1 ) % 8 != 0 ) row->render[idx++] = ' ';
+        } else {
+            row->render[idx++] = row->chars[j];
+        }
+    }
+    row->rsize       = idx;
+    row->render[idx] = '\0';
+}
+
+/* Insert a row at the specified position, shifting the other rows on the bottom
+ *  * if required. */
+void editorInsertRow( erow** source, int* numrows, int at, char* s,
+                      size_t len ) {
+    if ( at > *numrows ) return;
+    *source = (erow*)realloc( *source, sizeof( erow ) * ( *numrows + 1 ) );
+    if ( at != *numrows ) {
+        memmove( *source + at + 1, *source + at,
+                 sizeof( source[0] ) * ( *numrows - at ) );
+        for ( int j = at + 1; j <= *numrows; j++ ) ( *source )[j].idx++;
+    }
+    ( *source )[at].size  = len;
+    ( *source )[at].chars = (char*)malloc( len + 1 );
+    memcpy( ( *source )[at].chars, s, len + 1 );
+    ( *source )[at].render = NULL;
+    ( *source )[at].rsize  = 0;
+    ( *source )[at].idx    = at;
+    editorUpdateRow( *source + at );
+    ( *numrows )++;
+}
+
 /* ============================= Terminal update ============================ */
 
 /* We define a very simple "append buffer" structure, that is an heap
@@ -361,50 +417,93 @@ void abFree( struct abuf* ab ) {
  * starting from the logical state of the editor in the global state 'E'. */
 void editorRefreshScreen( void ) {
     int         y;
+    erow*       r;
     char        buf[32];
     struct abuf ab = ABUF_INIT;
 
     abAppend( &ab, "\x1b[?25l", 6 ); /* Hide cursor. */
     abAppend( &ab, "\x1b[H", 3 );    /* Go home. */
 
-    for ( y = 0; y < E.screenrows; y++ ) {
-        int filerow = E.rowoff + y;
+    switch ( E.mode ) {
+        case FILE_MODE:
 
-        if ( filerow >= E.numrows ) {
-            if ( E.numrows == 0 && y == E.screenrows / 3 ) {
-                char welcome[80];
-                int  welcomelen =
-                    snprintf( welcome, sizeof( welcome ), "mKilo" );
-                int padding = ( E.screencols - welcomelen ) / 2;
+            for ( y = 0; y < E.screenrows; y++ ) {
+                int filerow = E.rowoff + y;
 
-                if ( padding ) {
-                    abAppend( &ab, "~", 1 );
-                    padding--;
+                if ( filerow >= E.numrows ) {
+                    if ( E.numrows == 0 && y == E.screenrows / 3 ) {
+                        char welcome[80];
+                        int  welcomelen =
+                            snprintf( welcome, sizeof( welcome ), "mKilo" );
+                        int padding = ( E.screencols - welcomelen ) / 2;
+
+                        if ( padding ) {
+                            abAppend( &ab, "~", 1 );
+                            padding--;
+                        }
+
+                        while ( padding-- ) {
+                            abAppend( &ab, " ", 1 );
+                        }
+
+                        abAppend( &ab, welcome, welcomelen );
+                    } else {
+                        abAppend( &ab, "~\x1b[0K\r\n", 7 );
+                    }
+
+                    continue;
                 }
 
-                while ( padding-- ) {
-                    abAppend( &ab, " ", 1 );
-                }
-
-                abAppend( &ab, welcome, welcomelen );
-            } else {
-                abAppend( &ab, "~\x1b[0K\r\n", 7 );
+                abAppend( &ab, "\x1b[39m", 5 );
+                abAppend( &ab, "\x1b[0K", 4 );
+                abAppend( &ab, "\r\n", 2 );
             }
 
-            continue;
-        }
+            break;
+        case DIR_MODE:
+            for ( y = 0; y < E.screenrows; y++ ) {
+                /*
+                 *if ( y < E.numdir ) {
+                 *    char buf[80];
+                 *    int  buflen = snprintf( buf, sizeof( buf ),
+                 *"%s\x1b[0k\r\n",
+                 *                           E.simple_dir[y] );
+                 *    abAppend( &ab, buf, buflen );
+                 *} else
+                 *    abAppend( &ab, "\x1b[0K\r\n", 6 );
+                 */
+                int filerow = E.rowoff + y;
 
-        abAppend( &ab, "\x1b[39m", 5 );
-        abAppend( &ab, "\x1b[0K", 4 );
-        abAppend( &ab, "\r\n", 2 );
+                if ( filerow >= E.numdir ) {
+                    abAppend( &ab, "~\x1b[0K\r\n", 7 );
+                    continue;
+                }
+
+                r = &E.dir[filerow];
+
+                int len = r->rsize - E.coloff;
+                if ( len > 0 ) {
+                    if ( len > E.screencols ) len = E.screencols;
+                    char* c                       = r->render + E.coloff;
+                    int   j;
+                    for ( j = 0; j < len; j++ ) {
+                        abAppend( &ab, c + j, 1 );
+                    }
+                }
+                abAppend( &ab, "\x1b[39m", 5 );
+                abAppend( &ab, "\x1b[0K", 4 );
+                abAppend( &ab, "\r\n", 2 );
+            }
+            break;
     }
 
     /* Create a two rows status. First row: */
     abAppend( &ab, "\x1b[0K", 4 );
     abAppend( &ab, "\x1b[7m", 4 );
     char status[80], rstatus[80];
-    int  len = snprintf( status, sizeof( status ), "%.20s - %d lines %s",
-                        E.filename, E.numrows, E.dirty ? "(modified)" : "" );
+    int  len = snprintf( status, sizeof( status ), "%s - %.20s - %d lines %s",
+                        E.mode == DIR_MODE ? "DIR" : "EDIT", E.filename,
+                        E.numrows, E.dirty ? "(modified)" : "" );
     int rlen = snprintf( rstatus, sizeof( rstatus ), "%d/%d",
                          E.rowoff + E.cy + 1, E.numrows );
 
@@ -449,6 +548,14 @@ void editorRefreshScreen( void ) {
     abFree( &ab );
 }
 
+void editorSetStatusMessage( const char* fmt, ... ) {
+    va_list ap;
+    va_start( ap, fmt );
+    vsnprintf( E.statusmsg, sizeof( E.statusmsg ), fmt, ap );
+    va_end( ap );
+    E.statusmsg_time = time( NULL );
+}
+
 /* ========================= Editor events handling  ======================== */
 
 /* Handle cursor position change because arrow keys were pressed. */
@@ -456,6 +563,29 @@ void editorMoveCursor( int key ) {
     int filerow = E.rowoff + E.cy;
     int filecol = E.coloff + E.cx;
     int rowlen;
+
+    if ( E.mode == DIR_MODE ) {
+        erow* row = ( filerow >= E.numdir ) ? NULL : &E.dir[filerow];
+
+        switch ( key ) {
+            case ARROW_UP:
+                if ( E.cy == 0 ) {
+                    if ( E.rowoff ) E.rowoff--;
+                } else {
+                    E.cy -= 1;
+                }
+                break;
+            case ARROW_DOWN:
+                if ( filerow < E.numdir ) {
+                    if ( E.cy == E.screenrows - 1 ) {
+                        E.rowoff++;
+                    } else {
+                        E.cy += 1;
+                    }
+                }
+                break;
+        }
+    }
 }
 
 /* Process events arriving from the standard input, which is, the user
@@ -471,6 +601,11 @@ void editorProcessKeypress( int fd ) {
     switch ( c ) {
         case ENTER: /* Enter */
             // editorInsertNewline();
+            if ( E.mode == DIR_MODE ) {
+                int   filerow = E.rowoff + E.cy;
+                erow* row = ( filerow >= E.numdir ) ? NULL : &E.dir[filerow];
+                editorSetStatusMessage( "Open File %s", row->chars );
+            }
             break;
 
         case CTRL_C: /* Ctrl-c */
@@ -537,16 +672,6 @@ void editorProcessKeypress( int fd ) {
     quit_times = KILO_QUIT_TIMES; /* Reset it to the original value. */
 }
 
-/* Set an editor status message for the second line of the status, at the
- * end of the screen. */
-void editorSetStatusMessage( const char* fmt, ... ) {
-    va_list ap;
-    va_start( ap, fmt );
-    vsnprintf( E.statusmsg, sizeof( E.statusmsg ), fmt, ap );
-    va_end( ap );
-    E.statusmsg_time = time( NULL );
-}
-
 void initEditor( void ) {
     E.cx       = 0;
     E.cy       = 0;
@@ -593,31 +718,22 @@ void* message_handler( void* ptr ) {
         fprintf( stderr, "[%s] proc_buffer: %s\n", __func__, proc_buffer );
 #endif
 
-        char* split = api_divider( &proc_buffer, &proc_length );
+        char*  split = api_divider( &proc_buffer, &proc_length );
+        char** arr   = NULL;
         if ( split != NULL ) {
-#ifdef DEBUG
-            fprintf( stderr, "[%s] get command: %s\n", __func__, split );
-#endif
             api_clear();
             switch ( api_parser( split, strlen( split ) + 1 ) ) {
                 case API_RESPOSE_REMOTE_FILE_LIST:
-#ifdef DEBUG
-                    fprintf( stderr, "[%s] {%s : %s}\n", __func__, "DIR",
-                             api_get_key( "DIR" ) );
-#endif
-                    char** array = str_explode( '&', api_get_key("DIR") );
-#ifdef DEBUG
-                    fprintf( stderr, "-----------remote directory----------\n" );
-#endif
-                    for ( int i = 0; array && array[i]; ++i ) {
-#ifdef DEBUG
-                        fprintf( stderr, "[%s] %s\n", __func__, array[i] );
-#endif
+                    arr = str_explode( '&', api_get_key( "DIR" ) );
+
+                    /* convert string array to erow array */
+                    for ( int i = 0; arr[i] != NULL; i++ ) {
+                        editorInsertRow( &E.dir, &E.numdir, i, arr[i],
+                                         strlen( arr[i] ) );
                     }
-#ifdef DEBUG
-                    fprintf( stderr, "-------------------------------------\n" );
-#endif
-                    destroy_array( &array );
+
+                    editorRefreshScreen();
+                    destroy_array( &arr );
 
                     break;
             }
@@ -675,19 +791,18 @@ int main( int argc, char** argv ) {
     api_generator( &command, &command_len, API_GET_REMOTE_FILE_LIST );
     _s.send( &_s, command, command_len + 1 );
 
-    /*
-     *    initEditor();
-     *    enableRawMode( STDIN_FILENO );
-     *    editorSetStatusMessage( "HELP: Ctrl-Q = quit | Ctrl-W = change
-     * windows" );
-     *
-     *    while ( 1 ) {
-     *        editorRefreshScreen();
-     *        editorProcessKeypress( STDIN_FILENO );
-     *    }
-     */
+    initEditor();
+    enableRawMode( STDIN_FILENO );
+    editorSetStatusMessage( "HELP: Ctrl-Q = quit | Ctrl-W = change windows" );
 
-    while ( 1 ) sleep( 1 );
+    while ( 1 ) {
+        editorRefreshScreen();
+        editorProcessKeypress( STDIN_FILENO );
+    }
+
+    /*
+     *while ( 1 ) sleep( 1 );
+     */
 
     clear();
 
