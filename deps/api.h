@@ -15,5 +15,6 @@ char* api_get_key( char* key );
 int api_set_key( const char* key, const char* value );
 int api_generator( char** buffer, ssize_t* length, char api );
 char api_parser( char* buffer, ssize_t length );
+char* api_divider( char** buffer, ssize_t* length );
 
 #endif

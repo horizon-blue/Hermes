@@ -571,23 +571,59 @@ void initEditor( void ) {
 /* ======================== Socket ======================= */
 
 void* message_handler( void* ptr ) {
-    Socket*      self   = (Socket*)ptr;
-    static char* buffer = NULL;
-    size_t       length;
+    Socket*      self        = (Socket*)ptr;
+    static char* recv_buffer = NULL;
+    size_t       recv_length;
+
+    char*   proc_buffer = NULL;
+    ssize_t proc_length = 0;
 
     while ( 1 ) {
-        if ( self->receive( self, &buffer, &length ) ) {
+        if ( self->receive( self, &recv_buffer, &recv_length ) ) {
             // clear();
             return NULL;
         }
 
-        /* TODO: concatrate buffer and process api */
+        /* concatrate buffer and process api */
+        proc_buffer = (char*)realloc( proc_buffer, proc_length + recv_length );
+        memcpy( proc_buffer + proc_length, recv_buffer, recv_length );
+        proc_length += recv_length;
 
 #ifdef DEBUG
-        /*
-         *fprintf( stderr, "[%s] received: %s\n", __func__, buffer );
-         */
+        fprintf( stderr, "[%s] proc_buffer: %s\n", __func__, proc_buffer );
 #endif
+
+        char* split = api_divider( &proc_buffer, &proc_length );
+        if ( split != NULL ) {
+#ifdef DEBUG
+            fprintf( stderr, "[%s] get command: %s\n", __func__, split );
+#endif
+            api_clear();
+            switch ( api_parser( split, strlen( split ) + 1 ) ) {
+                case API_RESPOSE_REMOTE_FILE_LIST:
+#ifdef DEBUG
+                    fprintf( stderr, "[%s] {%s : %s}\n", __func__, "DIR",
+                             api_get_key( "DIR" ) );
+#endif
+                    char** array = str_explode( '&', api_get_key("DIR") );
+#ifdef DEBUG
+                    fprintf( stderr, "-----------remote directory----------\n" );
+#endif
+                    for ( int i = 0; array && array[i]; ++i ) {
+#ifdef DEBUG
+                        fprintf( stderr, "[%s] %s\n", __func__, array[i] );
+#endif
+                    }
+#ifdef DEBUG
+                    fprintf( stderr, "-------------------------------------\n" );
+#endif
+                    destroy_array( &array );
+
+                    break;
+            }
+
+            free( split );
+        }
     }
 
     return NULL;

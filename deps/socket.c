@@ -162,9 +162,9 @@ int Socket_receive( Socket* self, char** buffer, size_t* length ) {
     }
 
     *length = bytes_received & 0xFF;
-    *buffer = (char*)realloc( *buffer, *length );
+    *buffer = (char*)realloc( *buffer, ( *length + 1 ) );
     memcpy( *buffer, rcv_buffer, *length );
-    ( *buffer )[*length - 1] = '\0';
+    ( *buffer )[*length] = '\0';
 
 #ifdef DEBUG
     fprintf( stderr, "[%s] received: %s\n", __func__, *buffer );

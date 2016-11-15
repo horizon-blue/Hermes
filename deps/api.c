@@ -165,3 +165,31 @@ char api_parser( char* buffer, ssize_t length ) {
 
     return buffer[1];
 }
+
+char* api_divider( char** buffer, ssize_t* length ) {
+    if ( buffer == NULL || *buffer == NULL ) return NULL;
+
+    char* split = strchr( *buffer + 1, START_END_INDICATOR );
+    if ( split == NULL ) return NULL;
+
+#ifdef DEBUG
+    fprintf( stderr, "[%s] old buffer = %s, len = %lu\n", __func__, *buffer,
+             *length );
+    fprintf( stderr, "[%s] calculate diff = %llu\n", __func__,
+             (uint64_t)split - (uint64_t)(*buffer) + 2 );
+#endif
+
+    ssize_t api_length = (uint64_t)split - (uint64_t)(*buffer) + 2;
+    *length -= api_length;
+    char* divide_api = strndup( *buffer, api_length );
+    char* old   = *buffer;
+    *buffer     = length == 0 ? NULL : strdup( *buffer + api_length );
+    free( old );
+
+#ifdef DEBUG
+    fprintf( stderr, "[%s] new buffer = %s, len = %lu\n", __func__, *buffer,
+             *length );
+#endif
+
+    return divide_api;
+}
