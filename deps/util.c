@@ -4,6 +4,9 @@
  */
 
 /* Assert macro */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif 
 #if !defined( _POSIX_C_SOURCE ) && _POSIX_C_SOURCE < 199309L
 #define _POSIX_C_SOURCE 199309L
 #endif
@@ -191,13 +194,9 @@ char **get_file_list( const char *base_directory ) {
         (char **)malloc( sizeof( char * ) * ( file_counts + 1 ) );
     size_t index = 0;
     while ( ( curr_file = readdir( the_directory ) ) ) {
-        if ( curr_file->d_type == DT_DIR ) {
-            size_t name_len      = strlen( curr_file->d_name );
-            name_of_files[index] = (char *)malloc( name_len + 2 );
-            memcpy( name_of_files[index], curr_file->d_name, name_len );
-            name_of_files[index][name_len]     = '/';  // for directory
-            name_of_files[index][name_len + 1] = '\0';
-        } else
+        if ( curr_file->d_type == DT_DIR )
+            asprintf(&name_of_files[index], "%s/", curr_file->d_name);
+        else
             name_of_files[index] = strdup( curr_file->d_name );
         ++index;
     }
