@@ -40,10 +40,11 @@ $(warning Invalid value specified for OPTIMIZE. Should be on or off)
 CXXFLAGS += -g -O0
 endif
 
-.PHONY: all server client test
+.PHONY: all server client test nclient
 all: clean pre-compile server-release client echo-done
 server: clean pre-compile server-release echo-done
 client: clean pre-compile client-release echo-done
+nclient: nclient-release echo-done
 test: clean pre-compile test-debug echo-done
 	clear
 	@./test
@@ -79,6 +80,9 @@ client-release: $(OBJS_DEP:%.o=$(OBJS_DIR)/%.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%.
 client-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR)/%-debug.o)
 	@echo -e " ld\t$@"
 	@$(LD) $^ $(LDFLAGS) -o client
+
+nclient-release:
+	g++ -std=c++11 nclient.cpp -o nclient -lncurses -lpthread $(WARNINGS)
 
 test-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_TEST:%.o=$(OBJS_DIR)/%-debug.o)
 	@echo -e " ld\t$@"

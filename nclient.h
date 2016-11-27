@@ -1,7 +1,51 @@
 #ifndef __NCLIENT_H__
 #define __NCLIENT_H__
 
+#include <ncurses.h>
+#include <string>
+
 #define KEY_CTRL_C 3
+#define KEY_CTRL_G 7
+#define KEY_CTRL_Q 17
+#define KEY_DELETE 127
+
+using std::string;
+
+class Server {
+public:
+    Server() = default;
+    Server(const string& _ip, const string& _port) : ip(_ip), port(_port) {}
+    Server(const int& _s, const string& _ip, const string& _port)
+        : socket(_s), ip(_ip), port(_port) {}
+    ~Server() {
+        if(is_connected)
+            disconnect();
+    }
+    // access functions
+    const string& get_ip() const { return ip; }
+    const string& get_port() const { return port; }
+    int get_socket() const { return socket; }
+    bool isconnected() const { return is_connected; }
+
+    // modification functions
+    void set_socket(const int& _s) { socket = _s; }
+    void set_ip(const string& _ip) { ip = _ip; }
+    void set_port(const string& _port) { port = _port; }
+
+    // connection manipulation
+    bool connect();
+    bool disconnect();
+
+    // could be used directly as socket
+    operator int() const { return socket; }
+
+private:
+    int socket;
+    string ip;
+    string port;
+    bool is_connected = false;
+    sockaddr_in info;
+};
 
 char welcome_screen[14][70] = {
     "                                                             :     \n",
@@ -19,5 +63,9 @@ char welcome_screen[14][70] = {
     "  ...      #G      ..    ,;       E#t  :W##########Wt        t     \n",
     "           j                      ,;.  :,,,,,,,,,,,,,.             \n"};
 
-void print_welcome_screen(bool isconnected = false);
+void print_welcome_screen();
+void init_colors();
+bool wgetline(WINDOW* w, string& s, size_t n = 0);
+void message_handler();  // TODO
+void init_editor();      // TODO
 #endif
