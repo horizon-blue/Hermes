@@ -2,6 +2,9 @@ kilo
 .objs
 server
 client
+test
+nclient
+nserver
 *.swp
 *.dSYM
 tags
