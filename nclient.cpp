@@ -16,7 +16,9 @@
 #include <thread>
 #include <vector>
 
+#include "editor.h"
 #include "nclient.h"
+#include "window.h"
 
 using std::vector;
 using std::string;
@@ -25,7 +27,8 @@ using std::mutex;
 // using std::getchar;
 
 int max_row, max_col;
-Server server;
+Server server;  // contains socket, ip, port number, etc.
+Editor editor;  // for windows info, etc.
 
 int main() {
     // --------------- init --------------------
@@ -35,15 +38,22 @@ int main() {
     noecho();              // so that escape characters won't be printed
     getmaxyx(stdscr, max_row, max_col);  // get max windows size
     start_color();                       // enable coloring
-    init_colors();
+    init_colors();                       // add color configurations
 
     // -------------- done init ----------------
 
-    print_welcome_screen();
+    // ---------- establish connection ---------
+    print_welcome_screen();  // let user enter ip and port
+    // ---------- connection established -------
+
+    // ---------- init editor ------------------
+
+    // use multithread to handle message
     std::thread handler_thread(message_handler);
     init_editor();
 
-    for(char c = getch(); c != KEY_CTRL_Q; c = getch()) {  // experiment
+
+    for(char c = getch(); c != KEY_CTRL_Q; c = getch()) {
         // printw("%c", c);
         ;
         // refresh();
@@ -90,10 +100,20 @@ void print_welcome_screen() {
         server.set_port(temp);
 
         while(!server.connect()) {  // if connection fails
-            mvprintw(y + 1,
-                     max_col / 2 - 20,
-                     "Connection to %s fails, please try again.",
-                     server.get_ip().c_str());
+            move(max_row - 1, 0);
+            clrtoeol();
+            attron(COLOR_PAIR(3));  // print error message
+            if(server.get_port() == "" || server.get_ip() == "")
+                mvprintw(max_row - 1,
+                         max_col / 2 - 20,
+                         "Invalid ip/port number, please try again.");
+            else
+                mvprintw(max_row - 1,
+                         max_col / 2 - 20,
+                         "Connection to %s fails, please try again.",
+                         server.get_ip().c_str());
+            attroff(COLOR_PAIR(3));  // end printing error message
+
             move(port_y, port_x);
             clrtoeol();
             move(ip_y, ip_x);
@@ -105,6 +125,7 @@ void print_welcome_screen() {
             wgetline(stdscr, temp);
             server.set_port(temp);
         }
+
         move(y, 0);
         clrtoeol();
         mvprintw(y,
@@ -126,13 +147,14 @@ void print_welcome_screen() {
 void init_colors() {
     init_pair(1, COLOR_WHITE, COLOR_BLACK);
     init_pair(2, COLOR_BLUE, COLOR_BLACK);
+    init_pair(3, COLOR_WHITE, COLOR_RED);
 }
 
 bool wgetline(WINDOW* w, string& s, size_t n) {
     s.clear();
     int orig_y, orig_x;
     getyx(stdscr, orig_y, orig_x);
-    char curr;  // current character to read
+    int curr;  // current character to read
     while(!n || s.size() != n) {
         curr = wgetch(w);
         if(std::isprint(curr)) {
@@ -163,7 +185,7 @@ bool wgetline(WINDOW* w, string& s, size_t n) {
             return true;
         } else if(curr == KEY_CTRL_Q) {
             endwin();
-            std::exit(1);
+            std::exit(0);
             // return false;
         }
     }
@@ -171,14 +193,19 @@ bool wgetline(WINDOW* w, string& s, size_t n) {
 }
 
 bool Server::connect() {
-    if(is_connected)
+    if(is_connected || ip == "" || port == "")
         return false;
+    for(const char& c : port)
+        if(!std::isdigit(c)) {
+            port = "";
+            return false;
+        }
 
     if((socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         return false;
     std::memset(&info, 0, sizeof(info));  // Zero out addrinfo structure
     info.sin_family      = AF_INET;       // Internet address family
-    info.sin_addr.s_addr = ip == "" ? htonl(INADDR_ANY) : inet_addr(ip.c_str());
+    info.sin_addr.s_addr = inet_addr(ip.c_str());
     info.sin_port        = htons(static_cast<unsigned short>(std::stol(port)));
     if(::connect(socket, reinterpret_cast<sockaddr*>(&info), sizeof(info)) <
        0) {
@@ -202,10 +229,7 @@ void init_editor() {
     int y, x;
     getyx(stdscr, y, x);
     (void)x;  // silence the warning
-    mvprintw(y + 1,
-             max_col / 2 - 11,
-             "Receiving file list...",
-             server.get_ip().c_str());
+    mvprintw(y + 1, max_col / 2 - 11, "Retrieving file list...");
 }
 
 void message_handler() {
