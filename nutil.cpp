@@ -1,12 +1,18 @@
+#include <dirent.h>
+#include <sys/types.h>
 #include <time.h>
+
+#include <algorithm>
 #include <cinttypes>
 #include <string>
+#include <vector>
 
 #include "nutil.h"
 
 using std::uint64_t;
 using std::uint32_t;
 using std::string;
+using std::vector;
 
 uint64_t get_timestamp() {
     struct timespec ts;
@@ -48,7 +54,7 @@ static const char decoding_table[256] = {
 
 static const int mod_table[] = {0, 2, 1};
 
-string base64_encode(const string& data) {
+string base64_encode(const string &data) {
     size_t input_length  = data.size();
     size_t output_length = 4 * ((input_length + 2) / 3);
     string encoded_data;
@@ -78,7 +84,7 @@ string base64_encode(const string& data) {
     return encoded_data;
 }
 
-string base64_decode(const string& data) {
+string base64_decode(const string &data) {
     size_t input_length = data.size();
 
     if(input_length % 4 != 0)
@@ -121,4 +127,25 @@ string base64_decode(const string& data) {
         }
 
     return decoded_data;
+}
+
+vector<string> get_file_list(const string &base_directory) {
+    DIR *the_directory = opendir(base_directory.c_str());
+
+    vector<string> result;
+    if(!the_directory)
+        return result;
+
+
+    struct dirent *curr_file = NULL;
+    while((curr_file = readdir(the_directory))) {
+        if(curr_file->d_type == DT_DIR)
+            ;  // TODO..
+        else
+            result.emplace_back(curr_file->d_name);
+    }
+
+    std::sort(result.begin(), result.end());
+
+    return result;
 }

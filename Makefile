@@ -40,11 +40,13 @@ $(warning Invalid value specified for OPTIMIZE. Should be on or off)
 CXXFLAGS += -g -O0
 endif
 
-.PHONY: all server client test nclient
+.PHONY: all server client test nclient nserver new
 all: clean pre-compile server-release client echo-done
 server: clean pre-compile server-release echo-done
 client: clean pre-compile client-release echo-done
+new: nclient-release nserver-release echo-done
 nclient: nclient-release echo-done
+nserver: nserver-release echo-done
 test: clean pre-compile test-debug echo-done
 	clear
 	@./test
@@ -82,7 +84,16 @@ client-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR
 	@$(LD) $^ $(LDFLAGS) -o client
 
 nclient-release:
-	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp -o nclient -lncurses -lpthread $(WARNINGS)
+	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp nsocket.cpp -o nclient -lncurses -lpthread $(WARNINGS)
+
+nserver-release:
+	g++ -std=c++11 nserver.cpp nutil.cpp nsocket.cpp -o nserver -lncurses -lpthread $(WARNINGS)
+
+nclient-debug:
+	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp nsocket.cpp -o nclient -lncurses -lpthread -DDEBUG $(WARNINGS)
+
+nserver-debug:
+	g++ -std=c++11 nserver.cpp nutil.cpp nsocket.cpp -o nserver-debug -lncurses -lpthread -DDEBUG $(WARNINGS)
 
 test-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_TEST:%.o=$(OBJS_DIR)/%-debug.o)
 	@echo -e " ld\t$@"

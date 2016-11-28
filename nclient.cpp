@@ -2,10 +2,7 @@
 // A new text editor written from starch
 // Based on C++ && ncurses
 #include <ncurses.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 // #include <cstdio>
-#include <arpa/inet.h>
 #include <unistd.h>
 #include <cctype>
 #include <condition_variable>
@@ -18,6 +15,7 @@
 
 #include "editor.h"
 #include "nclient.h"
+#include "nsocket.h"
 #include "nutil.h"
 #include "window.h"
 
@@ -28,7 +26,7 @@ using std::mutex;
 // using std::getchar;
 
 int max_row, max_col;
-Server server;  // contains socket, ip, port number, etc.
+Socket server;  // contains socket, ip, port number, etc.
 Editor editor;  // for windows info, etc.
 
 int main() {
@@ -77,7 +75,7 @@ void init_colors() {
 
 void message_handler() {
     // TODO
-    server.send("*A@QkFTRQ==`Lw==*");
+    server.send("*A@QkFTRQ==`Lw==* ");
     sleep(3);
 }
 
@@ -113,7 +111,7 @@ void print_welcome_screen() {
         getyx(stdscr, port_y, port_x);
 
         y += 2;
-        mvprintw(y, max_col / 2 - 11, "Press CTRL_Q to quit.");
+        mvprintw(y, max_col / 2 - 11, "Press CTRL+Q to quit.");
         move(ip_y, ip_x);  // ready to receive ip addrress
         string temp;
         wgetline(stdscr, temp);
@@ -208,53 +206,4 @@ bool wgetline(WINDOW* w, string& s, size_t n) {
         }
     }
     return true;
-}
-
-bool Server::connect() {
-    if(is_connected || ip == "" || port == "")
-        return false;
-    for(const char& c : port)
-        if(!std::isdigit(c)) {
-            port = "";
-            return false;
-        }
-
-    if((socket = ::socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-        return false;
-    std::memset(&info, 0, sizeof(info));  // Zero out addrinfo structure
-    info.sin_family      = AF_INET;       // Internet address family
-    info.sin_addr.s_addr = inet_addr(ip.c_str());
-    info.sin_port        = htons(static_cast<unsigned short>(std::stol(port)));
-    if(::connect(socket, reinterpret_cast<sockaddr*>(&info), sizeof(info)) <
-       0) {
-        close(socket);
-        return false;
-    }
-    is_connected = true;
-    return true;
-}
-
-bool Server::disconnect() {
-    if(!is_connected)
-        return false;
-    shutdown(socket, SHUT_RDWR);
-    close(socket);
-    is_connected = false;
-    return true;
-}
-
-ssize_t Server::send(const string& message) {
-    if(!is_connected)
-        return -1;
-    size_t sent = 0;
-    while(sent < message.size()) {
-        ssize_t temp = ::send(
-            socket, message.substr(sent).c_str(), message.size() - sent, 0);
-        if(temp < 0)
-            return temp;
-        if(temp == 0)
-            return sent;
-        sent += temp;
-    }
-    return sent;
 }
