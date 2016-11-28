@@ -7,11 +7,7 @@ using std::endl;
 using std::cout;
 using std::string;
 
-volatile std::sig_atomic_t running = 1;
-void int_handler(int sig) {
-    running = 0;
-}
-
+void int_handler(int sig);
 int run_server();
 
 

@@ -31,12 +31,17 @@ public:
     void set_socket(const int& _s) { socket = _s; }
     void set_ip(const string& _ip) { ip = _ip; }
     void set_port(const string& _port) { port = _port; }
+    void set_info(const sockaddr_in& i) {
+        is_connected = true;
+        std::memcpy(&info, &i, sizeof(info));
+    }
     void clear_info() { std::memset(&info, 0, sizeof(info)); }
 
     // connection manipulation
     bool connect();
     bool disconnect();
     ssize_t send(const string& message);
+    ssize_t receive(string& message, size_t len);
 
     // could be used directly as socket
     operator int() const { return socket; }
@@ -59,6 +64,7 @@ public:
 
     // overload connect for passive socket
     bool connect();
+    bool accept(Socket& client);
 
     int get_num_client() const { return num_client; }
     int get_max_connection() const { return max_connection; }
@@ -67,6 +73,7 @@ public:
 
     // move operator
     ServerSocket& operator=(ServerSocket&& other) = default;
+
 
 private:
     int num_client     = 0;

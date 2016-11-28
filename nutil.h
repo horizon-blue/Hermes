@@ -18,7 +18,7 @@ using std::endl;
 #define PERROR(x)          \
     do {                   \
         cerr << x << endl; \
-    } while(false);
+    } while(false)
 #else
 #define PERROR(x)
 #endif
