@@ -8,6 +8,7 @@
 #include <cstring>
 #include <string>
 
+#include "nutil.h"
 
 using std::string;
 
@@ -37,16 +38,26 @@ public:
     }
     void clear_info() { std::memset(&info, 0, sizeof(info)); }
 
+    ssize_t send(const string& message, int command_type = C_OTHER);
+    ssize_t receive(string& buffer, int& command_type);
+
     // connection manipulation
     bool connect();
     bool disconnect();
-    ssize_t send(const string& message);
-    ssize_t receive(string& message, size_t len);
 
     // could be used directly as socket
     operator int() const { return socket; }
 
 protected:
+    // helper function
+    ssize_t sen(const string& message, size_t len = 0);
+    ssize_t sen(const char* const message, size_t len);
+    ssize_t recv(char* buffer, size_t len);
+    ssize_t recv(string& buffer, size_t len);
+
+    // ispired by CS 241 chatroom lab
+    static const size_t MESSAGE_SIZE_DIGITS = 4;
+
     int socket;
     string ip;
     string port;

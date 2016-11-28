@@ -23,6 +23,15 @@ using std::endl;
 #define PERROR(x)
 #endif
 
+enum COMMAND_TYPES {
+    C_NONE                 = 0,
+    C_GET_REMOTE_FILE_LIST = 65,
+    C_RESPONSE_REMOTE_FILE_LIST,
+    C_OPEN_FILE_REQUEST,
+    C_RESPONSE_FILE_INFO,
+    C_OTHER = 122,
+};
+
 uint64_t get_timestamp();
 string base64_encode(const string& data);
 string base64_decode(const string& data);

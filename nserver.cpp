@@ -41,17 +41,19 @@ void int_handler(int sig) {
 }
 
 int main(int argc, char** argv) {
-    cout << "Welcome to mKilo server. :)" << endl;
+    cout << "Welcome to Hermes server. :)" << endl;
     if(argc < 2) {
         cerr << "Usage: " << argv[0]
-             << " <port number> [max clients = 10] [file path = ./_files/]"
-             << endl;
-        return 1;
-    }
+             << " [port number = 12345] [max clients = 10]\n"
+             << "[file path = ./_files/]" << endl;
+        self.set_port("12345");
+    } else
+        self.set_port(argv[1]);
+
     std::signal(SIGINT, int_handler);
 
     cout << "Press Ctrl+C to quit." << endl;
-    self.set_port(argv[1]);
+
     if(argc > 2) {
         for(int i = 0; argv[2][i]; ++i)
             if(!std::isdigit(argv[2][i])) {
@@ -80,11 +82,12 @@ int main(int argc, char** argv) {
 #endif
 
     self.connect();
+    cout << "Server established on port " << self.get_port() << endl;
 
     int retval = run_server();
 
     // use \r to overwrite potential escape character
-    cout << "\rClosing mKilo server...\n"
+    cout << "\rClosing Hermes server...\n"
          << "Goodbye." << endl;
     return retval;
 }
@@ -99,7 +102,7 @@ int run_server() {
         Socket client;
         if(!self.accept(client)) {
             PERROR("accept() fails");
-            return 1;
+            return 0;
         }
         // Add client to list
         global_mutex.lock();
@@ -112,10 +115,12 @@ int run_server() {
             }
         global_mutex.unlock();
         cout << "Client joined on " << client.get_ip() << endl;
-        // // testing
-        // string message;
-        // client.receive(message, 18);
-        // cout << "Receive " << message << " from " << client.get_ip() << endl;
+        // testing
+        string message;
+        int command;
+        client.receive(message, command);
+        cout << "Receive " << message << " with command " << command << " from "
+             << client.get_ip() << endl;
     }
     for(std::thread& t : working_threads)
         t.join();

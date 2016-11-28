@@ -89,18 +89,22 @@ void init_editor() {
 
 void print_welcome_screen() {
     int y = 0;
-    if(max_row > 20 && max_col > 68) {
+    if(max_row > welcome_screen.size() + 9 &&
+       max_col > welcome_screen.front().size() + 2) {
         // if terminal is large enough to print that character image
         attron(COLOR_PAIR(2));
-        for(int i = 0; i < 14; ++i) {
-            mvprintw(y++, max_col / 2 - 34, "%s", welcome_screen[i]);
+        for(const string& s : welcome_screen) {
+            mvprintw(y++,
+                     (max_col - welcome_screen.front().size() + 1) / 2,
+                     "%s",
+                     s.c_str());
         }
         attroff(COLOR_PAIR(2));
         attron(COLOR_PAIR(1));
         ++y;
     }
 
-    mvprintw(y, max_col / 2 - 11, "Welcome to mKilo.");
+    mvprintw(y, max_col / 2 - 11, "Welcome to Hermes.");
     y += 2;
 
     if(!server.isconnected()) {

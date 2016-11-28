@@ -3,6 +3,7 @@
 
 #include <ncurses.h>
 #include <string>
+#include <vector>
 #include "nutil.h"
 
 #define KEY_CTRL_C 3
@@ -11,22 +12,22 @@
 #define KEY_DELETE 127
 
 using std::string;
+using std::vector;
 
-char welcome_screen[14][70] = {
-    "                                                             :     \n",
-    "                        G:                                  t#,    \n",
-    "                        E#,    :  t               i        ;##W.   \n",
-    "            ..       :  E#t  .GE  Ej             LE       :#L:WE   \n",
-    "           ,W,     .Et  E#t j#K;  E#,           L#E      .KG  ,#D  \n",
-    "          t##,    ,W#t  E#GK#f    E#t          G#W.      EE    ;#f \n",
-    "         L###,   j###t  E##D.     E#t         D#K.      f#.     t#i\n",
-    "       .E#j##,  G#fE#t  E##Wi     E#t        E#K.       :#G     GK \n",
-    "      ;WW; ##,:K#i E#t  E#jL#D:   E#t      .E#E.         ;#L   LW. \n",
-    "     j#E.  ##f#W,  E#t  E#t ,K#j  E#t     .K#E            t#f f#:  \n",
-    "   .D#L    ###K:   E#t  E#t   jD  E#t    .K#D              f#D#;   \n",
-    "  :K#t     ##D.    E#t  j#t       E#t   .W#G                G#t    \n",
-    "  ...      #G      ..    ,;       E#t  :W##########Wt        t     \n",
-    "           j                      ,;.  :,,,,,,,,,,,,,.             \n"};
+// [11][63]
+vector<string> welcome_screen = {
+    "____    ____                                                  \n",
+    "`MM'    `MM'                                                  \n",
+    " MM      MM                                                   \n",
+    " MM      MM   ____   ___  __ ___  __    __     ____     ____  \n",
+    " MM      MM  6MMMMb  `MM 6MM `MM 6MMb  6MMb   6MMMMb   6MMMMb\\\n",
+    " MMMMMMMMMM 6M'  `Mb  MM69 \"  MM69 `MM69 `Mb 6M'  `Mb MM'    `\n",
+    " MM      MM MM    MM  MM'     MM'   MM'   MM MM    MM YM.     \n",
+    " MM      MM MMMMMMMM  MM      MM    MM    MM MMMMMMMM  YMMMMb \n",
+    " MM      MM MM        MM      MM    MM    MM MM            `Mb\n",
+    " MM      MM YM    d9  MM      MM    MM    MM YM    d9 L    ,MM\n",
+    "_MM_    _MM_ YMMMM9  _MM_    _MM_  _MM_  _MM_ YMMMM9  MYMMMM9 \n"};
+
 
 void print_welcome_screen();
 void init_colors();
