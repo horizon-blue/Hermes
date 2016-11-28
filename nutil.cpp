@@ -129,8 +129,8 @@ string base64_decode(const string &data) {
     return decoded_data;
 }
 
-vector<string> get_file_list(const string &base_directory) {
-    DIR *the_directory = opendir(base_directory.c_str());
+vector<string> get_file_list(const char *const base_directory) {
+    DIR *the_directory = opendir(base_directory);
 
     vector<string> result;
     if(!the_directory)

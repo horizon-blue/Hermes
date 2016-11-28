@@ -12,5 +12,7 @@ void int_handler(int sig) {
     running = 0;
 }
 
+int run_server();
+
 
 #endif

@@ -51,8 +51,12 @@ protected:
 
 class ServerSocket : public Socket {
 public:
+    ServerSocket() : Socket() {}
     ServerSocket(const string& _port, int _mc)
         : Socket("", _port), max_connection(_mc) {}
+    // move constructor
+    ServerSocket(ServerSocket&& other) = default;
+
     // overload connect for passive socket
     bool connect();
 
@@ -60,6 +64,9 @@ public:
     int get_max_connection() const { return max_connection; }
 
     void set_max_connection(int mc) { max_connection = mc; }
+
+    // move operator
+    ServerSocket& operator=(ServerSocket&& other) = default;
 
 private:
     int num_client     = 0;

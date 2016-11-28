@@ -26,7 +26,7 @@ using std::endl;
 uint64_t get_timestamp();
 string base64_encode(const string& data);
 string base64_decode(const string& data);
-vector<string> get_file_list(const string& base_directory);
+vector<string> get_file_list(const char* const base_directory);
 
 
 #endif
