@@ -82,7 +82,7 @@ client-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_CLIENT:%.o=$(OBJS_DIR
 	@$(LD) $^ $(LDFLAGS) -o client
 
 nclient-release:
-	g++ -std=c++11 nclient.cpp window.cpp editor.cpp -o nclient -lncurses -lpthread $(WARNINGS)
+	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp -o nclient -lncurses -lpthread $(WARNINGS)
 
 test-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o) $(OBJS_TEST:%.o=$(OBJS_DIR)/%-debug.o)
 	@echo -e " ld\t$@"

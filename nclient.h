@@ -3,6 +3,7 @@
 
 #include <ncurses.h>
 #include <string>
+#include "nutil.h"
 
 #define KEY_CTRL_C 3
 #define KEY_CTRL_G 7
@@ -35,6 +36,7 @@ public:
     // connection manipulation
     bool connect();
     bool disconnect();
+    ssize_t send(const string& message);
 
     // could be used directly as socket
     operator int() const { return socket; }

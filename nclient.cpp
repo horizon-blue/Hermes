@@ -18,6 +18,7 @@
 
 #include "editor.h"
 #include "nclient.h"
+#include "nutil.h"
 #include "window.h"
 
 using std::vector;
@@ -65,6 +66,28 @@ int main() {
 
     return 0;
 }
+
+
+void init_colors() {
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_BLUE, COLOR_BLACK);
+    init_pair(3, COLOR_WHITE, COLOR_RED);
+}
+
+
+void message_handler() {
+    // TODO
+    server.send("*A@QkFTRQ==`Lw==*");
+    sleep(3);
+}
+
+void init_editor() {
+    int y, x;
+    getyx(stdscr, y, x);
+    (void)x;  // silence the warning
+    mvprintw(y + 1, max_col / 2 - 11, "Retrieving file list...");
+}
+
 
 void print_welcome_screen() {
     int y = 0;
@@ -144,11 +167,6 @@ void print_welcome_screen() {
     refresh();
 }
 
-void init_colors() {
-    init_pair(1, COLOR_WHITE, COLOR_BLACK);
-    init_pair(2, COLOR_BLUE, COLOR_BLACK);
-    init_pair(3, COLOR_WHITE, COLOR_RED);
-}
 
 bool wgetline(WINDOW* w, string& s, size_t n) {
     s.clear();
@@ -225,14 +243,18 @@ bool Server::disconnect() {
     return true;
 }
 
-void init_editor() {
-    int y, x;
-    getyx(stdscr, y, x);
-    (void)x;  // silence the warning
-    mvprintw(y + 1, max_col / 2 - 11, "Retrieving file list...");
-}
-
-void message_handler() {
-    // TODO
-    sleep(3);
+ssize_t Server::send(const string& message) {
+    if(!is_connected)
+        return -1;
+    size_t sent = 0;
+    while(sent < message.size()) {
+        ssize_t temp = ::send(
+            socket, message.substr(sent).c_str(), message.size() - sent, 0);
+        if(temp < 0)
+            return temp;
+        if(temp == 0)
+            return sent;
+        sent += temp;
+    }
+    return sent;
 }
