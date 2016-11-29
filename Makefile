@@ -1,8 +1,12 @@
-.PHONY: all nclient nserver debug nserver-debug nclient-debug
+.PHONY: all nclient nserver debug nserver-debug nclient-debug linecount lc
 all: nclient-release nserver-release echo-done
 debug: nclient-debug nserver-debug echo-done
 nclient: nclient-release echo-done
 nserver: nserver-release echo-done
+lc: linecount
+
+linecount:
+	@cloc . --exclude-dir=./_previous,./_files,./diagram
 
 echo-done:
 	@echo "done."
