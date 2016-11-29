@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include "nutil.h"
 
@@ -18,6 +19,7 @@ public:
     Socket(const string& _ip, const string& _port) : ip(_ip), port(_port) {}
     Socket(const int& _s, const string& _ip, const string& _port)
         : socket(_s), ip(_ip), port(_port) {}
+    Socket(const Socket& other);
     ~Socket() {
         if(is_connected)
             disconnect();
@@ -39,6 +41,9 @@ public:
     void clear_info() { std::memset(&info, 0, sizeof(info)); }
 
     ssize_t send(const string& message, int command_type = C_OTHER);
+    ssize_t broadcast(const string& message,
+                      const std::vector<int>& client_list,
+                      int command_type = C_OTHER);
     ssize_t receive(string& buffer, int& command_type);
 
     // connection manipulation
@@ -47,11 +52,12 @@ public:
 
     // could be used directly as socket
     operator int() const { return socket; }
+    Socket& operator=(Socket&& other);
 
 protected:
     // helper function
-    ssize_t sen(const string& message, size_t len = 0);
-    ssize_t sen(const char* const message, size_t len);
+    ssize_t sen(const string& message, size_t len = 0, int s = -1);
+    ssize_t sen(const char* const message, size_t len, int s = -1);
     ssize_t recv(char* buffer, size_t len);
     ssize_t recv(string& buffer, size_t len);
 

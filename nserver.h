@@ -3,12 +3,14 @@
 
 #include <iostream>
 #include <string>
+#include "nsocket.h"
 using std::endl;
 using std::cout;
 using std::string;
 
 void int_handler(int sig);
 int run_server();
+void message_handler(size_t clientId);
 
 
 #endif

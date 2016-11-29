@@ -34,4 +34,5 @@ void init_colors();
 bool wgetline(WINDOW* w, string& s, size_t n = 0);
 void message_handler();  // TODO
 void init_editor();      // TODO
+void segfault_handler(int sig);
 #endif

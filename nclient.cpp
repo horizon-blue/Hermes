@@ -1,11 +1,12 @@
-// Xiaoyan Wang 11/26/2016
+// Xiaoyan Wang
 // A new text editor written from starch
 // Based on C++ && ncurses
 #include <ncurses.h>
-// #include <cstdio>
 #include <unistd.h>
+#include <algorithm>
 #include <cctype>
 #include <condition_variable>
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
@@ -20,12 +21,16 @@
 #include "window.h"
 
 using std::vector;
+using std::to_string;
 using std::string;
-using std::mutex;
+// using std::mutex;
 // using std::thread;
 // using std::getchar;
 
 int max_row, max_col;
+volatile std::sig_atomic_t running = 0;
+vector<string> file_list;
+std::mutex file_list_mutex;
 Socket server;  // contains socket, ip, port number, etc.
 Editor editor;  // for windows info, etc.
 
@@ -38,6 +43,7 @@ int main() {
     getmaxyx(stdscr, max_row, max_col);  // get max windows size
     start_color();                       // enable coloring
     init_colors();                       // add color configurations
+    std::signal(SIGSEGV, segfault_handler);
 
     // -------------- done init ----------------
 
@@ -75,15 +81,52 @@ void init_colors() {
 
 void message_handler() {
     // TODO
-    server.send("*A@QkFTRQ==`Lw==* ");
+    ssize_t status = 1;
+    string message;  // message received
+    int command;     // command received
+
+    // getting file list before starting editor
+    server.send("init", C_GET_REMOTE_FILE_LIST);
+    if(server.receive(message, command) < 0) {
+        mvprintw(0, max_col / 2 - 10, "receive() fails.");
+        return;
+    }
+    int num_file = std::stoi(message);
+    file_list.reserve(num_file);
+    for(int i = 0; i < num_file; ++i) {
+        server.receive(message, command);
+        file_list.push_back(message);
+    }
+
+    running = 1;
+
+    while(running && status) {
+        status = server.receive(message, command);
+        if(status <= 0) {
+            PERROR("receive() fails.");
+            running = 0;
+            break;
+        }
+
+        // switch(command) {
+
+
+        // }
+    }
     sleep(3);
 }
 
 void init_editor() {
     int y, x;
     getyx(stdscr, y, x);
-    (void)x;  // silence the warning
     mvprintw(y + 1, max_col / 2 - 11, "Retrieving file list...");
+    getyx(stdscr, y, x);
+    while(!running)  // loop forever until file list is ready
+        ;
+    // testing
+    erase();
+    for(int i = 0; i < file_list.size() && i < max_row; ++i)
+        mvaddstr(i, 0, file_list[i].c_str());
 }
 
 
@@ -205,9 +248,15 @@ bool wgetline(WINDOW* w, string& s, size_t n) {
             return true;
         } else if(curr == KEY_CTRL_Q) {
             endwin();
+            running = 0;
             std::exit(0);
             // return false;
         }
     }
     return true;
+}
+
+void segfault_handler(int sig) {
+    // so that ncurses won't mess up our screen
+    endwin();
 }

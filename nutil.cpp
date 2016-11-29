@@ -149,3 +149,21 @@ vector<string> get_file_list(const char *const base_directory) {
 
     return result;
 }
+
+
+string str_implode(const vector<string> &svec, char seperator) {
+    if(svec.empty())
+        return "";
+
+    size_t len = 0;
+    for(const string &s : svec)
+        len += s.size();
+    string result;
+    result.reserve(len + svec.size());
+    for(size_t i = 0; i < svec.size(); ++i) {
+        result += svec[i];
+        result.push_back(seperator);
+    }
+    result += svec.back();
+    return result;
+}

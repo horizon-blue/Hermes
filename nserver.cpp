@@ -1,7 +1,10 @@
+// Xiaoyan Wang
+// Hermes server
 #include <ncurses.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include <unistd.h>
 #include <cctype>
 #include <condition_variable>
 #include <csignal>
@@ -9,8 +12,10 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <list>
 #include <mutex>
 #include <queue>
+// #include <sstream>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -22,15 +27,17 @@
 #include "nutil.h"
 
 using std::string;
+using std::list;
 using std::cout;
+using std::to_string;
 using std::endl;
 using std::vector;
 
 // mapping file names to list of client
 // use filename as index
 // key "~" means the given client has not chose a file yet
-std::unordered_map<string, vector<size_t>> client_indexs;
-std::mutex global_mutex;
+std::unordered_map<string, vector<int>> client_map;
+std::mutex client_map_mutex;
 vector<string> file_list;
 vector<Socket> client_list;
 ServerSocket self;
@@ -45,7 +52,7 @@ int main(int argc, char** argv) {
     if(argc < 2) {
         cerr << "Usage: " << argv[0]
              << " [port number = 12345] [max clients = 10]\n"
-             << "[file path = ./_files/]" << endl;
+             << "                 [file path = ./_files/]" << endl;
         self.set_port("12345");
     } else
         self.set_port(argv[1]);
@@ -75,10 +82,10 @@ int main(int argc, char** argv) {
         file_list = std::move(get_file_list("./_files/"));
 
 #ifdef DEBUG
-    cout << "Avaliable files:\n";
+    cout << "Avaliable files:\n------------\n";
     for(const string& s : file_list)
         cout << s << '\n';
-    cout << std::flush;
+    cout << "------------" << endl;
 #endif
 
     self.connect();
@@ -94,36 +101,56 @@ int main(int argc, char** argv) {
 
 int run_server() {
     // main part of server program
-    vector<std::thread> working_threads;
-
     cout << "Waiting for connection..." << endl;
+    std::thread client_thread(message_handler, 0);
+    client_thread.detach();
 
-    while(running) {
-        Socket client;
-        if(!self.accept(client)) {
-            PERROR("accept() fails");
-            return 0;
-        }
-        // Add client to list
-        global_mutex.lock();
-        // find the first avaliable client that is not connected
-        for(size_t i = 0; i < client_list.size(); ++i)
-            if(!client_list[i].isconnected()) {
-                client_list[i] = std::move(client);
-                client_indexs["~"].push_back(i);
-                break;
-            }
-        global_mutex.unlock();
-        cout << "Client joined on " << client.get_ip() << endl;
-        // testing
-        string message;
-        int command;
-        client.receive(message, command);
-        cout << "Receive " << message << " with command " << command << " from "
-             << client.get_ip() << endl;
-    }
-    for(std::thread& t : working_threads)
-        t.join();
+    while(running)
+        ;  // loop forever
 
     return 0;
+}
+
+void message_handler(size_t clientId) {
+    // handling client
+    PERROR("Starting thread " << clientId << "...");
+
+    Socket client;
+    if(!self.accept(client)) {
+        PERROR("accept() fails");
+        return;
+    }
+
+    // release another thread
+    std::thread client_thread(message_handler, clientId + 1);
+    client_thread.detach();
+
+    ssize_t status = 1;
+    string message;  // message received
+    int command;     // command type
+
+    cout << "Client " << clientId << " joined on " << client.get_ip() << endl;
+
+    while(running && status) {
+        status = client.receive(message, command);
+        if(status <= 0) {
+            PERROR("receive() fails");
+            break;
+        }
+        cout << "Receive " << message << " with command " << command
+             << " from client " << clientId << endl;
+        switch(command) {
+            case C_GET_REMOTE_FILE_LIST:
+                cout << "Sending file list to client " << clientId << endl;
+                // sending number of files
+                client.send(to_string(file_list.size()),
+                            C_RESPONSE_REMOTE_FILE_LIST);
+                // sending each file
+                for(const string& filename : file_list)
+                    client.send(filename, C_RESPONSE_REMOTE_FILE_LIST);
+                break;
+        }
+    }
+
+    cout << "Client " << clientId << " left." << endl;
 }

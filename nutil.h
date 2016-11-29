@@ -3,6 +3,7 @@
 // a C++ implimentation of the old deps/util.h
 #include <cinttypes>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 using std::uint64_t;
@@ -36,6 +37,8 @@ uint64_t get_timestamp();
 string base64_encode(const string& data);
 string base64_decode(const string& data);
 vector<string> get_file_list(const char* const base_directory);
+
+string str_implode(const vector<string>& svec, char seperator = '&');
 
 
 #endif

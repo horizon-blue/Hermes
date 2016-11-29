@@ -6,6 +6,7 @@
 #include <cinttypes>
 #include <cstring>
 #include <string>
+#include <utility>
 
 #include "nsocket.h"
 #include "nutil.h"
@@ -14,6 +15,20 @@ using std::string;
 using std::int32_t;
 
 const size_t Socket::MESSAGE_SIZE_DIGITS;
+
+Socket::Socket(const Socket& other)
+    : Socket(other.socket, other.ip, other.port) {
+    is_connected = other.is_connected;
+    memcpy(&info, &(other.info), sizeof(info));
+}
+
+Socket& Socket::operator=(Socket&& other) {
+    socket       = other.socket;
+    ip           = std::move(other.ip);
+    port         = std::move(other.port);
+    is_connected = other.is_connected;
+    std::memmove(&info, &(other.info), sizeof(info));
+}
 
 bool Socket::connect() {
     if(is_connected || ip == "" || port == "")
@@ -49,27 +64,45 @@ bool Socket::disconnect() {
 }
 
 ssize_t Socket::send(const string& message, int command_type) {
-    int32_t len = htonl(message.size());
-    if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS) < 0)
-        return -1;
     string encrypted;
     encrypted.push_back(static_cast<char>(command_type));
-    encrypted.append(base64_encode(message));
-    return sen(encrypted);
+    encrypted.append(std::move(base64_encode(message)));
+    int32_t len = htonl(encrypted.size() - 1);
+    if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS) < 0)
+        return -1;
+    ssize_t retval = sen(encrypted);
+    PERROR("Sending " << encrypted << " of size " << ntohl(len));
+    return retval;
 }
 
-ssize_t Socket::sen(const string& message, size_t len) {
+ssize_t Socket::broadcast(const string& message,
+                          const std::vector<int>& client_list,
+                          int command_type) {
+    string encrypted;
+    encrypted.push_back(static_cast<char>(command_type));
+    encrypted.append(std::move(base64_encode(message)));
+    int32_t len = htonl(encrypted.size() - 1);
+    ssize_t retval;
+    for(const int& s : client_list) {
+        if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS, s) < 0)
+            return -1;
+        retval = sen(encrypted, s);
+        if(retval <= 0)
+            return retval;
+    }
+}
+
+ssize_t Socket::sen(const string& message, size_t len, int s) {
+    if(s == -1)
+        s = socket;
     if(!is_connected)
         return -1;
     if(!len) {
-        len = message.size() + 1;
+        len = message.size();
     }
     size_t sent = 0;
-    // since std::string does not include null terminator
-    // explicitly plus one to include it
     while(sent < len) {
-        ssize_t temp =
-            ::send(socket, message.substr(sent).c_str(), len - sent, 0);
+        ssize_t temp = ::send(s, message.substr(sent).c_str(), len - sent, 0);
         if(temp < 0)
             return temp;
         if(temp == 0)
@@ -79,16 +112,17 @@ ssize_t Socket::sen(const string& message, size_t len) {
     return sent;
 }
 
-ssize_t Socket::sen(const char* const message, size_t len) {
+ssize_t Socket::sen(const char* const message, size_t len, int s) {
+    if(s == -1)
+        s = socket;
     if(!is_connected)
         return -1;
     if(!len)
         return 0;
     size_t sent = 0;
-    // since std::string does not include null terminator
-    // explicitly plus one to include it
+
     while(sent < len) {
-        ssize_t temp = ::send(socket, message + sent, len - sent, 0);
+        ssize_t temp = ::send(s, message + sent, len - sent, 0);
         if(temp < 0)
             return temp;
         if(temp == 0)
@@ -105,7 +139,7 @@ ssize_t Socket::receive(string& buffer, int& command_type) {
         return -1;
 
     len = ntohl(len);
-    PERROR("message size is" << len);
+    PERROR("message size is " << len);
 
     char c;
     if(recv(&c, 1) < 0)
