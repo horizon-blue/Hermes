@@ -40,6 +40,7 @@ std::unordered_map<string, vector<int>> client_map;
 std::mutex client_map_mutex;
 vector<string> file_list;
 vector<Socket> client_list;
+string base_directory;
 ServerSocket self;
 volatile std::sig_atomic_t running = 1;
 void int_handler(int sig) {
@@ -77,9 +78,11 @@ int main(int argc, char** argv) {
     client_list.resize(self.get_max_connection());
 
     if(argc > 3)
-        file_list = std::move(get_file_list(argv[3]));
+        base_directory = argv[3];
     else
-        file_list = std::move(get_file_list("./_files/"));
+        base_directory = "./_files/";
+
+    file_list = std::move(get_file_list(base_directory.c_str()));
 
 #ifdef DEBUG
     cout << "Avaliable files:\n------------\n";
@@ -152,8 +155,27 @@ void message_handler(size_t clientId) {
             case C_OPEN_FILE_REQUEST:
                 cout << "Open " << message << " for client " << clientId
                      << endl;
-                client.send("This is just a placeholder for the actual file.",
-                            C_RESPONSE_FILE_INFO);
+                std::ifstream fin(base_directory + message);
+                if(!fin.is_open())
+                    PERROR("Failed to open " << message);
+                client.receive(message, command);
+                int lines_to_send = std::stoi(message);
+                // TODO: comparing line_to_send with lines in file
+                client.send(message, C_RESPONSE_FILE_INFO);
+                string buffer;
+                for(int i = 0; i < lines_to_send; ++i) {
+                    if(std::getline(fin, buffer))
+                        client.send(buffer);
+                    else
+                        client.send("~");
+                }
+                fin.close();
+                cout << "Sent " << lines_to_send << " lines." << endl;
+
+                // client.send("This is just a placeholder for the actual
+                // file.",
+                //             C_RESPONSE_FILE_INFO);
+
                 break;
         }
     }

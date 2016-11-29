@@ -95,9 +95,9 @@ void message_handler() {
         mvprintw(0, max_col / 2 - 10, "receive() fails.");
         return;
     }
-    int num_file = std::stoi(message);
-    file_list.reserve(num_file);
-    for(int i = 0; i < num_file; ++i) {
+    int num_message = std::stoi(message);
+    file_list.reserve(num_message);
+    for(int i = 0; i < num_message; ++i) {
         server.receive(message, command);
         file_list.push_back(message);
     }
@@ -114,8 +114,11 @@ void message_handler() {
 
         switch(command) {
             case C_RESPONSE_FILE_INFO:
-                // TODO
-                file_contents.emplace_back(std::move(message));
+                num_message = std::stoi(message);
+                for(int i = 0; i < num_message; ++i) {
+                    server.receive(message, command);
+                    file_contents.emplace_back(std::move(message));
+                }
                 running = 3;
                 break;
         }
@@ -134,7 +137,8 @@ void init_editor() {
     erase();
     refresh();
     editor.status.print_filename("~");  // denotes that we haven't select file
-    editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
+    editor.status.print_status(
+        "Press Enter to select a file. Press Ctrl+Q to quit.");
     editor.dir.print_filelist(file_list);
     int c;
     while(running) {
@@ -161,7 +165,9 @@ void init_editor() {
             }
         }
         editor.status.print_status("Retrieving file contents...");
+        // send file name and number of rows
         server.send(editor.status.get_filename(), C_OPEN_FILE_REQUEST);
+        server.send(to_string(max_row - 2));
         while(running == 2)  // waiting for file content
             ;
         editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
