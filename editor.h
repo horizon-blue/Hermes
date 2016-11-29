@@ -15,12 +15,19 @@ public:
     // access functions
     bool isinit() const { return is_init; }
 
+    // mode 0 = directory mode
+    // mode 1 = file mode
+    // mode -1 = blindly switch to other mode
+    void switch_mode(int mode = -1);
+
+    FileList dir;      // directory panel
+    Window file;       // file contents
+    StatusBar status;  // status_bar
+
 
 private:
-    bool is_init = false;
-    Window dir;     // directory panel
-    Window file;    // file contents
-    Window status;  // status_bar
+    bool is_init     = false;
+    int current_mode = 0;
 };
 
 #endif

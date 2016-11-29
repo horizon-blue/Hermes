@@ -147,7 +147,13 @@ void message_handler(size_t clientId) {
                             C_RESPONSE_REMOTE_FILE_LIST);
                 // sending each file
                 for(const string& filename : file_list)
-                    client.send(filename, C_RESPONSE_REMOTE_FILE_LIST);
+                    client.send(filename);
+                break;
+            case C_OPEN_FILE_REQUEST:
+                cout << "Open " << message << " for client " << clientId
+                     << endl;
+                client.send("This is just a placeholder for the actual file.",
+                            C_RESPONSE_FILE_INFO);
                 break;
         }
     }

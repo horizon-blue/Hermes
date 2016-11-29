@@ -9,9 +9,11 @@
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
+#include <list>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "editor.h"
@@ -22,6 +24,7 @@
 
 using std::vector;
 using std::to_string;
+using std::list;
 using std::string;
 // using std::mutex;
 // using std::thread;
@@ -30,6 +33,7 @@ using std::string;
 int max_row, max_col;
 volatile std::sig_atomic_t running = 0;
 vector<string> file_list;
+list<string> file_contents;
 std::mutex file_list_mutex;
 Socket server;  // contains socket, ip, port number, etc.
 Editor editor;  // for windows info, etc.
@@ -108,12 +112,14 @@ void message_handler() {
             break;
         }
 
-        // switch(command) {
-
-
-        // }
+        switch(command) {
+            case C_RESPONSE_FILE_INFO:
+                // TODO
+                file_contents.emplace_back(std::move(message));
+                running = 3;
+                break;
+        }
     }
-    sleep(3);
 }
 
 void init_editor() {
@@ -124,9 +130,55 @@ void init_editor() {
     while(!running)  // loop forever until file list is ready
         ;
     // testing
+    editor.init(max_row, max_col);
     erase();
-    for(int i = 0; i < file_list.size() && i < max_row; ++i)
-        mvaddstr(i, 0, file_list[i].c_str());
+    refresh();
+    editor.status.print_filename("~");  // denotes that we haven't select file
+    editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
+    editor.dir.print_filelist(file_list);
+    int c;
+    while(running) {
+        while(running == 1) {  // directory mode
+            c = wgetch(editor.dir);
+            switch(c) {
+                case KEY_UP:
+                    editor.dir.scroll_up(file_list);
+                    break;
+                case KEY_DOWN:
+                    editor.dir.scroll_down(file_list);
+                    break;
+                case KEY_CTRL_Q:
+                    endwin();
+                    running = 0;
+                    std::exit(0);
+                case KEY_ENTER:
+                case '\n':
+                    editor.status.print_filename(
+                        file_list[editor.dir.get_selection()]);
+                    editor.switch_mode();
+                    running = 2;
+                    break;
+            }
+        }
+        editor.status.print_status("Retrieving file contents...");
+        server.send(editor.status.get_filename(), C_OPEN_FILE_REQUEST);
+        while(running == 2)  // waiting for file content
+            ;
+        editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
+        int y = 0;
+        for(const string& line : file_contents)
+            editor.file.printline(line, y++);
+
+        while(running == 3) {  // file mode
+            c = wgetch(editor.file);
+            switch(c) {
+                case KEY_CTRL_Q:
+                    endwin();
+                    running = 0;
+                    std::exit(0);
+            }
+        }
+    }
 }
 
 
