@@ -28,8 +28,16 @@ all: release
 .PHONY: release
 .PHONY: debug
 
-release: $(EXES_ALL)
-debug:   $(EXES_ALL:%=%-debug)
+release: echo-compile $(EXES_ALL) echo-done
+debug:   echo-compile $(EXES_ALL:%=%-debug) echo-done
+
+.PHONY: echo-compile echo-done
+
+echo-compile:
+	@echo "compiling..."
+
+echo-done:
+	@echo "done."
 
 
 $(OBJS_DIR):
@@ -37,23 +45,36 @@ $(OBJS_DIR):
 
 # compiling objs
 $(OBJS_DIR)/%-debug.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
-	$(CC) $(CFLAGS_DEBUG) $< -o $@
+	@echo " cc\t$<"
+	@$(CC) $(CFLAGS_DEBUG) $< -o $@
 
 $(OBJS_DIR)/%-release.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
-	$(CC) $(CFLAGS_RELEASE) $< -o $@
+	@echo " cc\t$<"
+	@$(CC) $(CFLAGS_RELEASE) $< -o $@
 
 # compiling exes
 $(EXE_SERVER): $(OBJS_DEP:%.o=$(OBJS_DIR)/%-release.o)
-	$(LD) server.cpp $^ $(LDFLAGS) -o $@
+	@echo " ld\t$@"
+	@$(LD) server.cpp $^ $(LDFLAGS) -o $@
 
 $(EXE_SERVER)-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o)
-	$(LD) server.cpp $^ $(LDFLAGS) -o $@
+	@echo " ld\t$@"
+	@$(LD) server.cpp $^ $(LDFLAGS) -o $@
 
 $(EXE_CLIENT): $(OBJS_DEP:%.o=$(OBJS_DIR)/%-release.o)
-	$(LD) client.cpp $^ $(LDFLAGS) -o $@
+	@echo " ld\t$@"
+	@$(LD) client.cpp $^ $(LDFLAGS) -o $@
 
 $(EXE_CLIENT)-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o)
-	$(LD) client.cpp  $^ $(LDFLAGS) -o $@
+	@echo " ld\t$@"
+	@$(LD) client.cpp  $^ $(LDFLAGS) -o $@
+
+# line count
+.PHONY: lc linecount
+lc: linecount
+
+linecount:
+	@cloc . --exclude-dir=./_previous,./_files,./diagram
 
 .PHONY: clean
 clean:
