@@ -4,7 +4,7 @@
 #include <ncurses.h>
 #include <string>
 #include <vector>
-#include "nutil.h"
+#include "util.h"
 
 #define KEY_CTRL_C 3
 #define KEY_CTRL_G 7

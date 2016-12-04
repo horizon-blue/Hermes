@@ -39,7 +39,7 @@ void StatusBar::print_filename(const string& file_name) {
     wclrtoeol(win);
     waddch(win, ' ');
     waddnstr(win, file_name.c_str(), max_col);
-    for(int i = file_name.size() + 1; i < max_col; ++i)
+    for(size_t i = file_name.size() + 1; i < max_col; ++i)
         waddch(win, ' ');
     wrefresh(win);
     wattroff(win, A_REVERSE);
@@ -52,26 +52,29 @@ void StatusBar::print_status(const string& status) {
     Window::printline(status, 1, 1);
 }
 
-void FileList::print_filelist(const vector<string>& file_list, int sel) {
+void FileList::print_filelist(const vector<string>& file_list, ssize_t sel) {
+    size_t chosen;
     if(sel == -1)
-        sel        = selected;
+        chosen = selected;
+    else
+        chosen     = sel;
     size_t maxline = file_list.size() < max_row ? file_list.size() : max_row;
-    if(!is_init || sel > maxline)
+    if(!is_init || chosen > maxline)
         return;
 
 
     curs_set(0);
     werase(win);
     for(size_t i = 0; i < maxline; ++i) {
-        if(i != sel)
+        if(i != chosen)
             mvwaddnstr(win, i, 0, file_list[i].c_str(), max_col);
     }
 
     // default is to select the first item
     wattron(win, A_REVERSE);
-    mvwaddnstr(win, sel, 0, file_list[sel].c_str(), max_col);
+    mvwaddnstr(win, chosen, 0, file_list[chosen].c_str(), max_col);
     wattroff(win, A_REVERSE);
-    selected = sel;
+    selected = chosen;
 
     wrefresh(win);
 }

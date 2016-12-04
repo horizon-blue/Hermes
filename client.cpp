@@ -16,10 +16,10 @@
 #include <utility>
 #include <vector>
 
+#include "client.h"
 #include "editor.h"
-#include "nclient.h"
-#include "nsocket.h"
-#include "nutil.h"
+#include "socket.h"
+#include "util.h"
 #include "window.h"
 
 using std::vector;

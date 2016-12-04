@@ -8,8 +8,8 @@
 #include <string>
 #include <utility>
 
-#include "nsocket.h"
-#include "nutil.h"
+#include "socket.h"
+#include "util.h"
 
 using std::string;
 using std::int32_t;
@@ -28,6 +28,7 @@ Socket& Socket::operator=(Socket&& other) {
     port         = std::move(other.port);
     is_connected = other.is_connected;
     std::memmove(&info, &(other.info), sizeof(info));
+    return *this;
 }
 
 bool Socket::connect() {
@@ -81,8 +82,8 @@ ssize_t Socket::broadcast(const string& message,
     string encrypted;
     encrypted.push_back(static_cast<char>(command_type));
     encrypted.append(std::move(base64_encode(message)));
-    int32_t len = htonl(encrypted.size() - 1);
-    ssize_t retval;
+    int32_t len    = htonl(encrypted.size() - 1);
+    ssize_t retval = 0;
     for(const int& s : client_list) {
         if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS, s) < 0)
             return -1;
@@ -90,6 +91,7 @@ ssize_t Socket::broadcast(const string& message,
         if(retval <= 0)
             return retval;
     }
+    return retval;
 }
 
 ssize_t Socket::sen(const string& message, size_t len, int s) {
@@ -170,7 +172,7 @@ ssize_t Socket::recv(string& buffer, size_t len) {
         }
         got += temp;
     }
-    for(int i = 0; i < buffer.size(); ++i)
+    for(size_t i = 0; i < buffer.size(); ++i)
         if(buffer[i] == '\0') {
             buffer.resize(i);
             break;

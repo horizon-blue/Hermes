@@ -1,5 +1,5 @@
-#ifndef __NSOCKET_H__
-#define __NSOCKET_H__
+#ifndef __SOCKET_H__
+#define __SOCKET_H__
 // A wrapper class for C socket
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "nutil.h"
+#include "util.h"
 
 using std::string;
 

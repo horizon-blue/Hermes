@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include "nsocket.h"
+#include "socket.h"
 using std::endl;
 using std::cout;
 using std::string;

@@ -22,9 +22,9 @@
 #include <utility>
 #include <vector>
 
-#include "nserver.h"
-#include "nsocket.h"
-#include "nutil.h"
+#include "server.h"
+#include "socket.h"
+#include "util.h"
 
 using std::string;
 using std::list;

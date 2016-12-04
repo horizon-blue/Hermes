@@ -1,32 +1,60 @@
-.PHONY: all nclient nserver debug nserver-debug nclient-debug linecount lc
-all: nclient-release nserver-release echo-done
-debug: nclient-debug nserver-debug echo-done
-nclient: nclient-release echo-done
-nserver: nserver-release echo-done
-lc: linecount
+# Makefile for Hermes Text Editor
+# Xiaoyan Wang (HorizonBlue) December, 2016
+OBJS_DIR = .objs
+DEPS_DIR = deps
+EXE_SERVER = server
+EXE_CLIENT = client
+EXES_ALL = $(EXE_SERVER) $(EXE_CLIENT)
 
-linecount:
-	@cloc . --exclude-dir=./_previous,./_files,./diagram
+# dependencies
+OBJS_DEP = editor.o socket.o util.o window.o
+# OBJS_SERVER = server.o $(OBJS_DEP)
+# OBJS_CLIENT = client.o $(OBJS_DEP)
 
-echo-done:
-	@echo "done."
+# set up compiler
+CC = g++
+WARNINGS = -Wall -Wextra -Werror -Wno-error=unused-parameter
+CFLAGS_DEBUG   = -O0 $(WARNINGS) -I$(DEPS_DIR)/ -std=c++11 -c -DDEBUG
+CFLAGS_RELEASE = -O2 $(WARNINGS) -I$(DEPS_DIR)/ -std=c++11 -c
 
-nclient-release:
-	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp nsocket.cpp -o nclient -lncurses -lpthread $(WARNINGS)
+# set up linker
+LD = g++
+LDFLAGS = -lncurses -lpthread -I$(DEPS_DIR)/ -I$(OBJS_DIR)/ -std=c++11
+-include $(OBJS_DIR)/*.d
 
-nserver-release:
-	g++ -std=c++11 nserver.cpp nutil.cpp nsocket.cpp -o nserver -lncurses -lpthread $(WARNINGS)
+.PHONY: all
+all: release
 
-nclient-debug:
-	g++ -std=c++11 nclient.cpp window.cpp editor.cpp nutil.cpp nsocket.cpp -o nclient-debug -lncurses -lpthread -DDEBUG $(WARNINGS)
+.PHONY: release
+.PHONY: debug
 
-nserver-debug:
-	g++ -std=c++11 nserver.cpp nutil.cpp nsocket.cpp -o nserver-debug -lncurses -lpthread -DDEBUG $(WARNINGS)
+release: $(EXES_ALL)
+debug:   $(EXES_ALL:%=%-debug)
 
-.PHONY: test
-test:
-	g++ -std=c++11 test.cpp nutil.cpp -o test
+
+$(OBJS_DIR):
+	@mkdir -p $(OBJS_DIR)
+
+# compiling objs
+$(OBJS_DIR)/%-debug.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
+	$(CC) $(CFLAGS_DEBUG) $< -o $@
+
+$(OBJS_DIR)/%-release.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
+	$(CC) $(CFLAGS_RELEASE) $< -o $@
+
+# compiling exes
+$(EXE_SERVER): $(OBJS_DEP:%.o=$(OBJS_DIR)/%-release.o)
+	$(LD) server.cpp $^ $(LDFLAGS) -o $@
+
+$(EXE_SERVER)-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o)
+	$(LD) server.cpp $^ $(LDFLAGS) -o $@
+
+$(EXE_CLIENT): $(OBJS_DEP:%.o=$(OBJS_DIR)/%-release.o)
+	$(LD) client.cpp $^ $(LDFLAGS) -o $@
+
+$(EXE_CLIENT)-debug: $(OBJS_DEP:%.o=$(OBJS_DIR)/%-debug.o)
+	$(LD) client.cpp  $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:
-	rm -f nclient nserver nclient-debug nserver-debug
+	rm -rf .objs $(EXES_ALL) $(EXES_ALL:%=%-debug)

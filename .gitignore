@@ -1,12 +1,7 @@
-kilo
 .objs
 server
 client
 test
-nclient
-nserver
-nserver-debug
-nclient-debug
 *.swp
 *.dSYM
 tags

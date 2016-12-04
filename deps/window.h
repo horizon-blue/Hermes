@@ -36,8 +36,8 @@ public:
 protected:
     bool is_init = false;
     WINDOW* win;  // status bar
-    int max_row = 0;
-    int max_col = 0;
+    size_t max_row = 0;
+    size_t max_col = 0;
 };
 
 class StatusBar : public Window {
@@ -48,7 +48,7 @@ public:
     StatusBar(int maxrow, int maxcol) : Window(2, maxcol, maxrow - 2, 0) {}
 
     bool init(int maxrow, int maxcol) {
-        Window::init(2, maxcol, maxrow - 2, 0);
+        return Window::init(2, maxcol, maxrow - 2, 0);
     }
 
     void print_filename(const string& file_name);
@@ -62,14 +62,14 @@ private:
 
 class FileList : public Window {
 public:
-    void print_filelist(const vector<string>& file_list, int sel = -1);
+    void print_filelist(const vector<string>& file_list, ssize_t sel = -1);
     void scroll_up(const vector<string>& file_list);
     void scroll_down(const vector<string>& file_list);
 
     int get_selection() const { return selected; }
 
 private:
-    int selected = 0;
+    size_t selected = 0;
 };
 
 #endif

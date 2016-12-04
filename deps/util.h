@@ -1,5 +1,5 @@
-#ifndef __NUTIL_H__
-#define __NUTIL_H__
+#ifndef __UTIL_H__
+#define __UTIL_H__
 // a C++ implimentation of the old deps/util.h
 #include <cinttypes>
 #include <iostream>
