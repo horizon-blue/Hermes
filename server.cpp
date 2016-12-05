@@ -5,6 +5,7 @@
 #include <sys/types.h>
 
 #include <unistd.h>
+#include <algorithm>
 #include <cctype>
 #include <condition_variable>
 #include <csignal>
@@ -37,7 +38,9 @@ using std::vector;
 // use filename as index
 // key "~" means the given client has not chose a file yet
 std::unordered_map<string, vector<int>> client_map;
+std::unordered_map<string, vector<LineEntry>> file_map;
 std::mutex client_map_mutex;
+std::mutex file_map_mutex;
 vector<string> file_list;
 vector<Socket> client_list;
 string base_directory;
@@ -131,6 +134,7 @@ void message_handler(size_t clientId) {
     ssize_t status = 1;
     string message;  // message received
     int command;     // command type
+    string opened_file;
 
     cout << "Client " << clientId << " joined on " << client.get_ip() << endl;
 
@@ -143,7 +147,7 @@ void message_handler(size_t clientId) {
         cout << "Receive " << message << " with command " << command
              << " from client " << clientId << endl;
         switch(command) {
-            case C_GET_REMOTE_FILE_LIST:
+            case C_GET_REMOTE_FILE_LIST: {
                 cout << "Sending file list to client " << clientId << endl;
                 // sending number of files
                 client.send(to_string(file_list.size()),
@@ -152,24 +156,28 @@ void message_handler(size_t clientId) {
                 for(const string& filename : file_list)
                     client.send(filename);
                 break;
-            case C_OPEN_FILE_REQUEST:
-                cout << "Open " << message << " for client " << clientId
+            }
+            case C_OPEN_FILE_REQUEST: {
+                cout << "Client " << clientId << " ask to open file " << message
                      << endl;
-                std::ifstream fin(base_directory + message);
-                if(!fin.is_open())
-                    PERROR("Failed to open " << message);
+                opened_file = message;
+                // check if the file is already opened
+                file_map_mutex.lock();
+                if(file_map.find(message) == file_map.end())
+                    server_open_file(message);
+                const auto& file_vec = file_map.at(message);
+                file_map_mutex.unlock();
+
                 client.receive(message, command);
-                int lines_to_send = std::stoi(message);
-                // TODO: comparing line_to_send with lines in file
-                client.send(message, C_RESPONSE_FILE_INFO);
-                string buffer;
-                for(int i = 0; i < lines_to_send; ++i) {
-                    if(std::getline(fin, buffer))
-                        client.send(buffer);
-                    else
-                        client.send("~");
-                }
-                fin.close();
+                int lines_to_send = std::min(std::stoi(message),
+                                             static_cast<int>(file_vec.size()));
+
+                client.send(to_string(lines_to_send), C_RESPONSE_FILE_INFO);
+                client.send(to_string(file_vec.size()));
+                for(int i = 0; i < lines_to_send;
+                    ++i)  // send content of the line
+                    client.send(file_vec[i].s);
+
                 cout << "Sent " << lines_to_send << " lines." << endl;
 
                 // client.send("This is just a placeholder for the actual
@@ -177,8 +185,33 @@ void message_handler(size_t clientId) {
                 //             C_RESPONSE_FILE_INFO);
 
                 break;
+            }
+            case C_PUSH_LINE_BACK: {
+                cout << "Push " << message << " of file " << opened_file
+                     << " to client " << clientId << endl;
+                const auto& file_vec = file_map.at(opened_file);
+                size_t line_to_send  = std::stoi(message);
+                if(file_vec.size() < line_to_send)
+                    client.send("~", C_PUSH_LINE_BACK);
+                else
+                    client.send(file_vec[line_to_send].s, C_PUSH_LINE_BACK);
+                break;
+            }
         }
     }
 
     cout << "Client " << clientId << " left." << endl;
+}
+
+void server_open_file(const string& filename) {
+    PERROR("Open file " << filename);
+    std::ifstream fin(base_directory + filename);
+    if(!fin.is_open())
+        PERROR("Failed to open " << filename);
+    // use the bracket operator to create a new entry
+    auto& file_vec = file_map[filename];
+    // read and store the entire file into the vector
+    string temp;
+    while(std::getline(fin, temp))
+        file_vec.emplace_back(temp);
 }

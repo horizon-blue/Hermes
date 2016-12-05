@@ -1,9 +1,12 @@
 #ifndef __WINDOW_H__
 #define __WINDOW_H__
 #include <ncurses.h>
+#include <list>
 #include <string>
 #include <vector>
+#include "util.h"
 using std::vector;
+using std::list;
 using std::string;
 
 class Window {
@@ -70,6 +73,25 @@ public:
 
 private:
     size_t selected = 0;
+};
+
+class FileContent : public Window {
+public:
+    int scroll_up();
+    int scroll_down();
+    int scroll_right();
+    int scroll_left();
+    void set_num_file_lines(const size_t& i) { num_file_lines = i; }
+    list<ClientLineEntry>::iterator get_line(int row);
+    void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
+    void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
+
+private:
+    list<ClientLineEntry>* file_content;
+    list<ClientLineEntry>::iterator currrow;
+    size_t currrow_num;
+    size_t currcol;
+    size_t num_file_lines;
 };
 
 #endif

@@ -27,6 +27,7 @@ all: release
 
 .PHONY: release
 .PHONY: debug
+.PHONY: server client server-debug client-debug
 
 release: echo-compile $(EXES_ALL) echo-done
 debug:   echo-compile $(EXES_ALL:%=%-debug) echo-done

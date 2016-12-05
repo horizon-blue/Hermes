@@ -90,3 +90,87 @@ void FileList::scroll_down(const vector<string>& file_list) {
         return;
     print_filelist(file_list, ++selected);
 }
+
+void FileContent::set_file_content(list<ClientLineEntry>* fc,
+                                   int row,
+                                   int col) {
+    file_content = fc;
+    currrow      = fc->begin();
+    currrow_num  = row;
+    while(row--)
+        ++currrow;
+    currcol = col;
+    wmove(win, row, col);
+}
+
+list<ClientLineEntry>::iterator FileContent::get_line(int row) {
+    auto ret = file_content->begin();
+    while(row--)
+        ++ret;
+    return ret;
+}
+
+void FileContent::refresh_file_content(int row) {
+    if(row != -1) {
+        Window::printline(get_line(row)->s, row);
+        return;
+    }
+    werase(win);
+    wmove(win, 0, 0);
+    for(const auto& l : *file_content)
+        mvwaddnstr(win, ++row, 0, l.s.c_str(), max_col);
+    wrefresh(win);
+    if((currrow->s).size() < currcol) {
+        currcol = (currrow->s).size();
+    }
+    wmove(win, currrow_num, currcol);
+}
+
+int FileContent::scroll_up() {
+    if(currrow_num == 0) {
+        if(currrow->linenum)
+            return -1;  // ask to retieve the line before
+        else
+            return -2;  // we are at the front of file
+    }
+    --currrow;  // move back a line
+    if((currrow->s).size() < currcol) {
+        currcol = (currrow->s).size();
+    }
+    wmove(win, --currrow_num, currcol);
+    return 1;
+}
+
+int FileContent::scroll_down() {
+    if(currrow_num == max_row - 1) {
+        if(currrow->linenum == num_file_lines)
+            return -2;
+        else
+            return -1;
+    }
+    if(++currrow == file_content->end()) {
+        --currrow;
+        return -2;  // ask to retieve the line after
+    }
+    if((currrow->s).size() < currcol) {
+        currcol = (currrow->s).size();
+    }
+    wmove(win, ++currrow_num, currcol);
+    return 1;
+}
+
+int FileContent::scroll_right() {
+    if(currcol >= max_col || currcol > (currrow->s).size())
+        return 0;
+    ++currcol;
+    wmove(win, currrow_num, currcol);
+    return 1;
+}
+
+int FileContent::scroll_left() {
+    if(currcol == 0)
+        return 0;
+    --currcol;
+    wmove(win, currrow_num, currcol);
+    return 1;
+}

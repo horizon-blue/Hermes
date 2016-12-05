@@ -160,6 +160,12 @@ ssize_t Socket::receive(string& buffer, int& command_type) {
 ssize_t Socket::recv(string& buffer, size_t len) {
     if(!is_connected)
         return -1;
+    if(len > buffer.max_size()) {
+        PERROR("Attempting to create a string of size"
+               << len
+               << "which is larger than str.max_size()");
+        return -1;
+    }
     // char* buffer = new char[len];
     string(len, '\0').swap(buffer);
     size_t got = 0;

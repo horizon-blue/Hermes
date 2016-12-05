@@ -30,6 +30,8 @@ enum COMMAND_TYPES {
     C_RESPONSE_REMOTE_FILE_LIST,
     C_OPEN_FILE_REQUEST,
     C_RESPONSE_FILE_INFO,
+    C_PUSH_LINE_FRONT,
+    C_PUSH_LINE_BACK,
     C_OTHER = 122,
 };
 
@@ -40,5 +42,13 @@ vector<string> get_file_list(const char* const base_directory);
 
 string str_implode(const vector<string>& svec, char seperator = '&');
 
+struct ClientLineEntry {
+    ClientLineEntry() = default;
+    ClientLineEntry(const string& line, size_t line_num = 0)
+        : linenum(line_num), s(line) {}
+    operator string&() { return s; }
+    size_t linenum;
+    string s;
+};
 
 #endif

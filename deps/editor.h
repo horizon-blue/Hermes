@@ -21,7 +21,7 @@ public:
     void switch_mode(int mode = -1);
 
     FileList dir;      // directory panel
-    Window file;       // file contents
+    FileContent file;  // file contents
     StatusBar status;  // status_bar
 
 

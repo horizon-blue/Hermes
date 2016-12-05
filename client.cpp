@@ -26,6 +26,7 @@ using std::vector;
 using std::to_string;
 using std::list;
 using std::string;
+using std::lock;
 // using std::mutex;
 // using std::thread;
 // using std::getchar;
@@ -33,8 +34,10 @@ using std::string;
 int max_row, max_col;
 volatile std::sig_atomic_t running = 0;
 vector<string> file_list;
-list<string> file_contents;
+list<ClientLineEntry> file_contents;
 std::mutex file_list_mutex;
+std::mutex status_mutex;
+std::condition_variable status_cv;
 Socket server;  // contains socket, ip, port number, etc.
 Editor editor;  // for windows info, etc.
 
@@ -59,15 +62,15 @@ int main() {
 
     // use multithread to handle message
     std::thread handler_thread(message_handler);
-    init_editor();
+    run_editor();
 
 
-    for(char c = getch(); c != KEY_CTRL_Q; c = getch()) {
-        // printw("%c", c);
-        ;
-        // refresh();
-    }
-    // getch();
+    // for(char c = getch(); c != KEY_CTRL_Q; c = getch()) {
+    //     // printw("%c", c);
+    //     ;
+    //     // refresh();
+    // }
+    // // getch();
 
     handler_thread.join();
     endwin();  // end curse mode and restore screen
@@ -113,26 +116,37 @@ void message_handler() {
         }
 
         switch(command) {
-            case C_RESPONSE_FILE_INFO:
+            case C_RESPONSE_FILE_INFO: {
                 num_message = std::stoi(message);
+                server.receive(message, command);
+                editor.file.set_num_file_lines(std::stoi(message));
                 for(int i = 0; i < num_message; ++i) {
                     server.receive(message, command);
-                    file_contents.emplace_back(std::move(message));
+                    file_contents.emplace_back(std::move(message), i);
                 }
                 running = 3;
                 break;
+            }
+            case C_PUSH_LINE_BACK: {
+                file_contents.pop_front();
+                file_contents.emplace_back(std::move(message),
+                                           file_contents.back().linenum + 1);
+                running = 3;
+                break;
+            }
         }
     }
 }
 
-void init_editor() {
+void run_editor() {
     int y, x;
     getyx(stdscr, y, x);
     mvprintw(y + 1, max_col / 2 - 11, "Retrieving file list...");
     getyx(stdscr, y, x);
-    while(!running)  // loop forever until file list is ready
+    while(!running)  // wait until file list is ready
         ;
-    // testing
+
+    // init editor
     editor.init(max_row, max_col);
     erase();
     refresh();
@@ -171,9 +185,11 @@ void init_editor() {
         while(running == 2)  // waiting for file content
             ;
         editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
-        int y = 0;
-        for(const string& line : file_contents)
-            editor.file.printline(line, y++);
+        editor.file.set_file_content(&file_contents);
+        editor.file.refresh_file_content(-1);
+        // int y = 0;
+        // for(const string& line : file_contents)
+        //     editor.file.printline(line, y++);
 
         while(running == 3) {  // file mode
             c = wgetch(editor.file);
@@ -182,6 +198,35 @@ void init_editor() {
                     endwin();
                     running = 0;
                     std::exit(0);
+                case KEY_UP:
+                    if(editor.file.scroll_up() == -1) {
+                        // retrieve previous line from server
+                        server.send(
+                            to_string(file_contents.front().linenum - 1),
+                            C_PUSH_LINE_FRONT);
+                        running = 2;
+                        while(running == 2)
+                            ;
+                        editor.file.refresh_file_content(-1);
+                    }
+                    break;
+                case KEY_DOWN:
+                    if(editor.file.scroll_down() == -1) {
+                        // retrieve the line after from server
+                        server.send(to_string(file_contents.back().linenum + 1),
+                                    C_PUSH_LINE_BACK);
+                        running = 2;
+                        while(running == 2)
+                            ;
+                        editor.file.refresh_file_content(-1);
+                    }
+                    break;
+                case KEY_LEFT:
+                    editor.file.scroll_left();
+                    break;
+                case KEY_RIGHT:
+                    editor.file.scroll_right();
+                    break;
             }
         }
     }
