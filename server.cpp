@@ -191,10 +191,19 @@ void message_handler(size_t clientId) {
                      << " to client " << clientId << endl;
                 const auto& file_vec = file_map.at(opened_file);
                 size_t line_to_send  = std::stoi(message);
-                if(file_vec.size() < line_to_send)
-                    client.send("~", C_PUSH_LINE_BACK);
-                else
-                    client.send(file_vec[line_to_send].s, C_PUSH_LINE_BACK);
+                // if(file_vec.size() < line_to_send)
+                //     client.send("~", C_PUSH_LINE_BACK);  // shouldn't happen
+                // else
+                client.send(file_vec[line_to_send].s, C_PUSH_LINE_BACK);
+                break;
+            }
+            case C_PUSH_LINE_FRONT: {
+                cout << "Push " << message << " of file " << opened_file
+                     << " to client " << clientId << endl;
+                const auto& file_vec = file_map.at(opened_file);
+                size_t line_to_send  = std::stoi(message);
+
+                client.send(file_vec[line_to_send].s, C_PUSH_LINE_FRONT);
                 break;
             }
         }

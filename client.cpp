@@ -134,6 +134,13 @@ void message_handler() {
                 running = 3;
                 break;
             }
+            case C_PUSH_LINE_FRONT: {
+                file_contents.pop_back();
+                file_contents.emplace_front(std::move(message),
+                                            file_contents.front().linenum - 1);
+                running = 3;
+                break;
+            }
         }
     }
 }

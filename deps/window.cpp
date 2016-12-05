@@ -124,6 +124,7 @@ void FileContent::refresh_file_content(int row) {
         currcol = (currrow->s).size();
     }
     wmove(win, currrow_num, currcol);
+    currrow = get_line(currrow_num);
 }
 
 int FileContent::scroll_up() {
