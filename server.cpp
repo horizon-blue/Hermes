@@ -37,12 +37,11 @@ using std::vector;
 // mapping file names to list of client
 // use filename as index
 // key "~" means the given client has not chose a file yet
-std::unordered_map<string, vector<int>> client_map;
+std::list<ClientSocket> client_list;
 std::unordered_map<string, vector<LineEntry>> file_map;
-std::mutex client_map_mutex;
+std::mutex client_list_mutex;
 std::mutex file_map_mutex;
 vector<string> file_list;
-vector<Socket> client_list;
 string base_directory;
 ServerSocket self;
 volatile std::sig_atomic_t running = 1;
@@ -121,11 +120,18 @@ void message_handler(size_t clientId) {
     // handling client
     PERROR("Starting thread " << clientId << "...");
 
-    Socket client;
-    if(!self.accept(client)) {
+    ClientSocket pre_client;
+    if(!self.accept(pre_client)) {
         PERROR("accept() fails");
         return;
     }
+
+    client_list_mutex.lock();
+    // so that it we could easily delete client when it left
+    client_list.push_back(pre_client);
+    auto iter_self = --client_list.end();
+    client_list_mutex.unlock();
+    auto& client = *iter_self;  // for easy reference
 
     // release another thread
     std::thread client_thread(message_handler, clientId + 1);
@@ -144,8 +150,9 @@ void message_handler(size_t clientId) {
             PERROR("receive() fails");
             break;
         }
-        cout << "Receive " << message << " with command " << command
-             << " from client " << clientId << endl;
+        PERROR("Receive " << message << " with command " << command
+                          << " from client "
+                          << clientId);
         switch(command) {
             case C_GET_REMOTE_FILE_LIST: {
                 cout << "Sending file list to client " << clientId << endl;
@@ -158,8 +165,8 @@ void message_handler(size_t clientId) {
                 break;
             }
             case C_OPEN_FILE_REQUEST: {
-                cout << "Client " << clientId << " ask to open file " << message
-                     << endl;
+                PERROR("Client " << clientId << " ask to open file "
+                                 << message);
                 opened_file = message;
                 // check if the file is already opened
                 file_map_mutex.lock();
@@ -178,7 +185,7 @@ void message_handler(size_t clientId) {
                     ++i)  // send content of the line
                     client.send(file_vec[i].s);
 
-                cout << "Sent " << lines_to_send << " lines." << endl;
+                PERROR("Sent " << lines_to_send << " lines.");
 
                 // client.send("This is just a placeholder for the actual
                 // file.",
@@ -187,8 +194,9 @@ void message_handler(size_t clientId) {
                 break;
             }
             case C_PUSH_LINE_BACK: {
-                cout << "Push " << message << " of file " << opened_file
-                     << " to client " << clientId << endl;
+                PERROR("Push " << message << " of file " << opened_file
+                               << " to client "
+                               << clientId);
                 const auto& file_vec = file_map.at(opened_file);
                 size_t line_to_send  = std::stoi(message);
                 // if(file_vec.size() < line_to_send)
@@ -198,8 +206,9 @@ void message_handler(size_t clientId) {
                 break;
             }
             case C_PUSH_LINE_FRONT: {
-                cout << "Push " << message << " of file " << opened_file
-                     << " to client " << clientId << endl;
+                PERROR("Push " << message << " of file " << opened_file
+                               << " to client "
+                               << clientId);
                 const auto& file_vec = file_map.at(opened_file);
                 size_t line_to_send  = std::stoi(message);
 

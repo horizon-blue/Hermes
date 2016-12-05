@@ -113,6 +113,7 @@ list<ClientLineEntry>::iterator FileContent::get_line(int row) {
 void FileContent::refresh_file_content(int row) {
     if(row != -1) {
         Window::printline(get_line(row)->s, row);
+        wmove(win, currrow_num, currcol);
         wrefresh(win);
         return;
     }
@@ -121,11 +122,17 @@ void FileContent::refresh_file_content(int row) {
     for(const auto& l : *file_content)
         mvwaddnstr(win, ++row, 0, l.s.c_str(), max_col);
     wrefresh(win);
+    currrow = std::move(get_line(currrow_num));
     if((currrow->s).size() < currcol) {
         currcol = currrow->s.size();
     }
     wmove(win, currrow_num, currcol);
-    currrow = get_line(currrow_num);
+}
+
+void FileContent::refresh_currrow() {
+    Window::printline(currrow->s, currrow_num);
+    wmove(win, currrow_num, currcol);
+    wrefresh(win);
 }
 
 int FileContent::scroll_up() {
@@ -148,11 +155,11 @@ int FileContent::scroll_down() {
         if(currrow->linenum == num_file_lines)
             return -2;
         else
-            return -1;
+            return -1;  // ask to retieve the line after
     }
     if(++currrow == file_content->end()) {
         --currrow;
-        return -2;  // ask to retieve the line after
+        return -2;
     }
     if((currrow->s).size() < currcol) {
         currcol = currrow->s.size();
@@ -164,8 +171,7 @@ int FileContent::scroll_down() {
 int FileContent::scroll_right() {
     if(currcol >= max_col || currcol == currrow->s.size())
         return 0;
-    ++currcol;
-    wmove(win, currrow_num, currcol);
+    wmove(win, currrow_num, ++currcol);
     return 1;
 }
 
@@ -177,11 +183,11 @@ int FileContent::scroll_left() {
     return 1;
 }
 
-void FileContent::insert(const char& c) {
+void FileContent::insertchar(const char& c) {
     if(currcol > max_col)
         return;
-    currrow->s.insert(currcol, 1, c);
-    refresh_file_content(currrow_num);
+    currrow->s.insert(currrow->s.begin() + currcol, c);
+    refresh_currrow();
     wmove(win, currrow_num, ++currcol);
 }
 
@@ -192,7 +198,8 @@ void FileContent::delchar() {
         PERROR("delete character past end of line");
         return;
     }
-    currrow->s.erase(currcol, 1);
-    refresh_file_content(currrow_num);
-    wmove(win, currrow_num, --currcol);
+    --currcol;
+    currrow->s.erase(currrow->s.begin() + currcol);
+    refresh_currrow();
+    wmove(win, currrow_num, currcol);
 }

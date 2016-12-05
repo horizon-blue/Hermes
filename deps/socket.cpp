@@ -76,9 +76,9 @@ ssize_t Socket::send(const string& message, int command_type) {
     return retval;
 }
 
-ssize_t Socket::broadcast(const string& message,
-                          const std::vector<int>& client_list,
-                          int command_type) {
+ssize_t ClientSocket::broadcast(const string& message,
+                                const std::vector<int>& client_list,
+                                int command_type) {
     string encrypted;
     encrypted.push_back(static_cast<char>(command_type));
     encrypted.append(std::move(base64_encode(message)));

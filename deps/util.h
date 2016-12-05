@@ -36,6 +36,13 @@ enum COMMAND_TYPES {
     C_OTHER = 122,
 };
 
+enum STATUS_TYPES {
+    S_NONE = 0,
+    S_DIR_MODE,
+    S_WAITING_MODE,
+    S_FILE_MODE,
+};
+
 uint64_t get_timestamp();
 string base64_encode(const string& data);
 string base64_decode(const string& data);

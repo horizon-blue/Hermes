@@ -163,7 +163,7 @@ void run_editor() {
     editor.dir.print_filelist(file_list);
     int c;
     while(running) {
-        while(running == 1) {  // directory mode
+        while(running == S_DIR_MODE) {  // directory mode
             c = wgetch(editor.dir);
             switch(c) {
                 case KEY_UP:
@@ -181,7 +181,7 @@ void run_editor() {
                     editor.status.print_filename(
                         file_list[editor.dir.get_selection()]);
                     editor.switch_mode();
-                    running = 2;
+                    running = S_WAITING_MODE;
                     break;
             }
         }
@@ -189,7 +189,7 @@ void run_editor() {
         // send file name and number of rows
         server.send(editor.status.get_filename(), C_OPEN_FILE_REQUEST);
         server.send(to_string(max_row - 2));
-        while(running == 2)  // waiting for file content
+        while(running == S_WAITING_MODE)  // waiting for file content
             ;
         editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
         editor.file.set_file_content(&file_contents);
@@ -198,10 +198,10 @@ void run_editor() {
         // for(const string& line : file_contents)
         //     editor.file.printline(line, y++);
 
-        while(running == 3) {  // file mode
+        while(running == S_FILE_MODE) {  // file mode
             c = wgetch(editor.file);
             if(std::isprint(c)) {
-                editor.file.insert(c);
+                editor.file.insertchar(c);
                 server.send(to_string(editor.file.get_row()),
                             C_UPDATE_LINE_CONTENT);
                 server.send(editor.file.get_currline());
@@ -220,8 +220,8 @@ void run_editor() {
                         server.send(
                             to_string(file_contents.front().linenum - 1),
                             C_PUSH_LINE_FRONT);
-                        running = 2;
-                        while(running == 2)
+                        running = S_WAITING_MODE;
+                        while(running == S_WAITING_MODE)
                             ;
                         editor.file.refresh_file_content(-1);
                     }
@@ -231,8 +231,8 @@ void run_editor() {
                         // retrieve the line after from server
                         server.send(to_string(file_contents.back().linenum + 1),
                                     C_PUSH_LINE_BACK);
-                        running = 2;
-                        while(running == 2)
+                        running = S_WAITING_MODE;
+                        while(running == S_WAITING_MODE)
                             ;
                         editor.file.refresh_file_content(-1);
                     }

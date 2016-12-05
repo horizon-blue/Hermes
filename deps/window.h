@@ -81,12 +81,13 @@ public:
     int scroll_down();
     int scroll_right();
     int scroll_left();
-    void insert(const char& c);  // insert character at current position
+    void insertchar(const char& c);  // insert character at current position
     void delchar();
     void set_num_file_lines(const size_t& i) { num_file_lines = i; }
     list<ClientLineEntry>::iterator get_line(int row);
     void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
     void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
+    void refresh_currrow();
     const string& get_currline() const { return currrow->s; }
     size_t get_row() const { return currrow_num; }
 

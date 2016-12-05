@@ -41,9 +41,6 @@ public:
     void clear_info() { std::memset(&info, 0, sizeof(info)); }
 
     ssize_t send(const string& message, int command_type = C_OTHER);
-    ssize_t broadcast(const string& message,
-                      const std::vector<int>& client_list,
-                      int command_type = C_OTHER);
     ssize_t receive(string& buffer, int& command_type);
 
     // connection manipulation
@@ -95,6 +92,13 @@ public:
 private:
     int num_client     = 0;
     int max_connection = 10;
+};
+
+class ClientSocket : public Socket {
+public:
+    ssize_t broadcast(const string& message,
+                      const std::vector<int>& client_list,
+                      int command_type = C_OTHER);
 };
 
 #endif
