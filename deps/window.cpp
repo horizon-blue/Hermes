@@ -113,6 +113,7 @@ list<ClientLineEntry>::iterator FileContent::get_line(int row) {
 void FileContent::refresh_file_content(int row) {
     if(row != -1) {
         Window::printline(get_line(row)->s, row);
+        wrefresh(win);
         return;
     }
     werase(win);
@@ -121,7 +122,7 @@ void FileContent::refresh_file_content(int row) {
         mvwaddnstr(win, ++row, 0, l.s.c_str(), max_col);
     wrefresh(win);
     if((currrow->s).size() < currcol) {
-        currcol = (currrow->s).size();
+        currcol = currrow->s.size();
     }
     wmove(win, currrow_num, currcol);
     currrow = get_line(currrow_num);
@@ -136,7 +137,7 @@ int FileContent::scroll_up() {
     }
     --currrow;  // move back a line
     if((currrow->s).size() < currcol) {
-        currcol = (currrow->s).size();
+        currcol = currrow->s.size();
     }
     wmove(win, --currrow_num, currcol);
     return 1;
@@ -154,14 +155,14 @@ int FileContent::scroll_down() {
         return -2;  // ask to retieve the line after
     }
     if((currrow->s).size() < currcol) {
-        currcol = (currrow->s).size();
+        currcol = currrow->s.size();
     }
     wmove(win, ++currrow_num, currcol);
     return 1;
 }
 
 int FileContent::scroll_right() {
-    if(currcol >= max_col || currcol > (currrow->s).size())
+    if(currcol >= max_col || currcol == currrow->s.size())
         return 0;
     ++currcol;
     wmove(win, currrow_num, currcol);
@@ -174,4 +175,24 @@ int FileContent::scroll_left() {
     --currcol;
     wmove(win, currrow_num, currcol);
     return 1;
+}
+
+void FileContent::insert(const char& c) {
+    if(currcol > max_col)
+        return;
+    currrow->s.insert(currcol, 1, c);
+    refresh_file_content(currrow_num);
+    wmove(win, currrow_num, ++currcol);
+}
+
+void FileContent::delchar() {
+    if(currrow->s.empty() || currcol == 0)
+        return;
+    if(currrow->s.size() < currcol) {
+        PERROR("delete character past end of line");
+        return;
+    }
+    currrow->s.erase(currcol, 1);
+    refresh_file_content(currrow_num);
+    wmove(win, currrow_num, --currcol);
 }

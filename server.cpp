@@ -206,6 +206,16 @@ void message_handler(size_t clientId) {
                 client.send(file_vec[line_to_send].s, C_PUSH_LINE_FRONT);
                 break;
             }
+            case C_UPDATE_LINE_CONTENT: {
+                auto& file_vec        = file_map.at(opened_file);
+                size_t line_to_update = std::stoi(message);
+                client.receive(message, command);
+                file_vec[line_to_update].m.lock();
+                file_vec[line_to_update].s = message;
+                file_vec[line_to_update].m.unlock();
+                // TODO: broadcast change to all clients under this file
+                break;
+            }
         }
     }
 

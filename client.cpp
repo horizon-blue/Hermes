@@ -200,6 +200,15 @@ void run_editor() {
 
         while(running == 3) {  // file mode
             c = wgetch(editor.file);
+            if(std::isprint(c)) {
+                editor.file.insert(c);
+                server.send(to_string(editor.file.get_row()),
+                            C_UPDATE_LINE_CONTENT);
+                server.send(editor.file.get_currline());
+
+                // skip the following switch statement
+                continue;
+            }
             switch(c) {
                 case KEY_CTRL_Q:
                     endwin();
@@ -233,6 +242,15 @@ void run_editor() {
                     break;
                 case KEY_RIGHT:
                     editor.file.scroll_right();
+                    break;
+                case KEY_BACKSPACE:
+                case KEY_DC:
+                case KEY_DELETE:
+                case '\b':
+                    editor.file.delchar();
+                    server.send(to_string(editor.file.get_row()),
+                                C_UPDATE_LINE_CONTENT);
+                    server.send(editor.file.get_currline());
                     break;
             }
         }
@@ -339,9 +357,8 @@ bool wgetline(WINDOW* w, string& s, size_t n) {
 
             s.push_back(curr);
 
-        } else if(!s.empty() &&
-                  (curr == KEY_BACKSPACE || curr == KEY_DC ||
-                   curr == KEY_DELETE || curr == '\b' || curr == KEY_CTRL_G)) {
+        } else if(!s.empty() && (curr == KEY_BACKSPACE || curr == KEY_DC ||
+                                 curr == KEY_DELETE || curr == '\b')) {
             --orig_x;
             if(orig_x <= max_col) {
                 mvwdelch(w, orig_y, orig_x);
