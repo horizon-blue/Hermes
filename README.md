@@ -1,75 +1,60 @@
-mKilo
+Hermes
 ===
 
-### Compile
+A multiuser text editor written in C++ using ncurses library.
+
+## Compile
 
 ```bash
-# compile release version
+$ make
+
+# or, to compile server and client separately
 $ make server
 $ make client
+```
 
-# compile debug version
+To compile in debug mode (which prints out what is sent)
+```bash
+$ make debug
+
+# or, to compile server and client in debug mode separately
 $ make server-debug
 $ make client-debug
 ```
 
-### Usage
+## Usage
+| Function                        | Command  |
+| ------------------------------- |----------|
+| Switch to editing/browsing mode | Ctrl + O |
+| Quit (client) editor            | Ctrl + Q |
+| Close server                    | Ctrl + C |
 
-Run server
-
+## File
+The diagram is generated using [tree](https://en.wikipedia.org/wiki/Tree_(Unix))
 ```bash
-$ ./server [port]
-```
-
-Test echo server
-
-```bash
-$ telnet [ip] [port]
-```
-
-### Useful commands
-
-* exit
-
-    Close connection.
-
-    ```
-    exit
-    ```
-
-### File
-
-```
-├── LICENSE                 # License file
-├── Makefile                # Makefile
-├── README.md
-├── TODO
-├── client.c                # Client main file
+├── client.cpp          # codes for client
 ├── client.h
-├── deps
-│   ├── api.c               # API used and parsing functions
-│   ├── api.h
-│   ├── configfile.c        # Read configure file
-│   ├── configfile.h
-│   ├── error.c             # Global error code and handler
-│   ├── error.h
-│   ├── socket.c            # Pack system socket
+├── deps                # Class and helper functions
+│   ├── editor.cpp      # Client's editor class
+│   ├── editor.h
+│   ├── socket.cpp      # a wrapper class for C socket
 │   ├── socket.h
-│   ├── util.c              # Useful utilities
-│   └── util.h
-├── flow.pdf                # System flow chart
-├── kilo.c
-├── server.c                # Server main file
+│   ├── util.cpp        # Utility functions, encoding, decoding, etc.
+│   ├── util.h
+│   ├── window.cpp      # a wrapper class for curses WINDOW
+│   └── window.h
+├── diagram             # Explainatory diagrams
+│   ├── flow.graffle
+│   ├── flow.pdf
+│   ├── server.graffle
+│   └── server.pdf
+├── _files              # Testing files, feel free to add your own!
+│   └── ...
+├── Makefile
+├── _previous           # Debirs of first attempt
+│   └── ...
+├── README.md
+├── server.cpp          # codes for server
 ├── server.h
-└── tags                    # ctags
+└── test.cpp            # testing program that is used during development stage
 ```
-
-### Contributor
-
-* [jamsman94](https://github.com/jamsman94)
-* [Horizon-Blue](https://github.com/Horizon-Blue)
-* [Rijn](https://github.com/rijn)
-
-### Inspired by Kilo
-
-[https://github.com/antirez/kilo](https://github.com/antirez/kilo)
