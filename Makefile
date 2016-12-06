@@ -45,11 +45,11 @@ $(OBJS_DIR):
 	@mkdir -p $(OBJS_DIR)
 
 # compiling objs
-$(OBJS_DIR)/%-debug.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
+$(OBJS_DIR)/%-debug.o: $(DEPS_DIR)/%.cpp $(DEPS_DIR)/%.h| $(OBJS_DIR)
 	@echo " cc\t$<"
 	@$(CC) $(CFLAGS_DEBUG) $< -o $@
 
-$(OBJS_DIR)/%-release.o: $(DEPS_DIR)/%.cpp | $(OBJS_DIR)
+$(OBJS_DIR)/%-release.o: $(DEPS_DIR)/%.cpp $(DEPS_DIR)/%.h | $(OBJS_DIR)
 	@echo " cc\t$<"
 	@$(CC) $(CFLAGS_RELEASE) $< -o $@
 
