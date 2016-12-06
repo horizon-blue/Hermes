@@ -87,9 +87,14 @@ public:
     list<ClientLineEntry>::iterator get_line(int row);
     void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
     void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
+    void refresh_file_content(list<ClientLineEntry>::iterator& iter, int row);
+    void refresh_file_content(const string& line, int row);
     void refresh_currrow();
     const string& get_currline() const { return currrow->s; }
     size_t get_row() const { return currrow->linenum; }
+
+    bool isediting = false;
+    vector<bool> other_status_vec;
 
 private:
     list<ClientLineEntry>* file_content;

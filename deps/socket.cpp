@@ -77,30 +77,52 @@ ssize_t Socket::send(const string& message, int command_type) {
     return retval;
 }
 
-ssize_t ClientSocket::broadcast(const string& message,
-                                const std::vector<int>& client_list,
-                                int command_type) {
+// ssize_t ClientSocket::broadcast(const string& message,
+//                                 const std::vector<int>& client_list,
+//                                 int command_type) {
+//     string encrypted;
+//     encrypted.push_back(static_cast<char>(command_type));
+//     encrypted.append(std::move(base64_encode(message)));
+//     int32_t len    = htonl(encrypted.size() - 1);
+//     ssize_t retval = 0;
+//     for(const int& s : client_list) {
+//         if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS, s) < 0)
+//             return -1;
+//         retval = sen(encrypted, s);
+//         if(retval <= 0)
+//             return retval;
+//     }
+//     return retval;
+// }
+
+ssize_t ClientSocket::broadcast(const string& message, int command_type) {
+    if(!client_list)
+        return -1;
     string encrypted;
     encrypted.push_back(static_cast<char>(command_type));
     encrypted.append(std::move(base64_encode(message)));
-    int32_t len    = htonl(encrypted.size() - 1);
-    ssize_t retval = 0;
-    for(const int& s : client_list) {
-        if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS, s) < 0)
+    int32_t len    = htonl(encrypted.size());
+    ssize_t retval = static_cast<ssize_t>(len);
+    for(const auto& client : *client_list) {
+        if(&client == this || !client.isready || client.filename != filename ||
+           client.begloc > currloc || client.begloc + client.rownum < currloc)
+            continue;
+        if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS, client) < 0)
             return -1;
-        retval = sen(encrypted, s);
+        retval = sen(encrypted, encrypted.size(), client);
         if(retval <= 0)
             return retval;
     }
+    PERROR("Sending " << encrypted << " of size " << ntohl(len));
     return retval;
 }
 
-void ClientSocket::update_line(string&& line) {
+
+string& ClientSocket::update_line(string&& line) {
     if(!file_vec)
-        return;
-    (*file_vec)[currloc].m.lock();
+        return line;
     (*file_vec)[currloc].s = std::move(line);
-    (*file_vec)[currloc].m.unlock();
+    return line;
 }
 
 ssize_t Socket::sen(const string& message, size_t len, int s) {

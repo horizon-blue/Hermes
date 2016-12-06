@@ -9,7 +9,7 @@
 enum CTRL_KEY_TYPE {
     KEY_CTRL_C = 3,
     KEY_CTRL_G = 7,
-    KEY_CTRL_M = 13,
+    KEY_CTRL_O = 15,
     KEY_CTRL_Q = 17,
     KEY_DELETE = 127,
 };

@@ -7,12 +7,15 @@
 #include <sys/types.h>
 #include <climits>
 #include <cstring>
+#include <list>
 #include <string>
 #include <vector>
 
 #include "util.h"
 
 using std::string;
+using std::list;
+using std::vector;
 
 class Socket {
 public:
@@ -97,9 +100,10 @@ private:
 
 class ClientSocket : public Socket {
 public:
-    ssize_t broadcast(const string& message,
-                      const std::vector<int>& client_list,
-                      int command_type = C_OTHER);
+    // ssize_t broadcast(const string& message,
+    //                   const std::vector<int>& client_list,
+    //                   int command_type = C_OTHER);
+    ssize_t broadcast(const string& message, int command_type = C_OTHER);
     string filename;
     size_t begloc                     = 0;
     size_t rownum                     = ULONG_MAX;
@@ -107,10 +111,10 @@ public:
     bool isediting                    = false;
     bool isready                      = false;
     vector<ServerLineEntry>* file_vec = nullptr;
-    vector<ClientSocket>* client_vec  = nullptr;
+    list<ClientSocket>* client_list   = nullptr;
     ServerLineEntry& operator[](unsigned int i) { return (*file_vec)[i]; }
     operator bool() const { return isready; }
-    void update_line(string&& line);
+    string& update_line(string&& line);
 };
 
 #endif

@@ -179,9 +179,10 @@ void message_handler(size_t clientId) {
                 client.receive(message, command);
                 int lines_to_send =
                     std::min(std::stoul(message), client.file_vec->size());
-                client.begloc  = 0;
-                client.rownum  = lines_to_send;
-                client.currloc = 0;
+                client.begloc      = 0;
+                client.rownum      = lines_to_send;
+                client.currloc     = 0;
+                client.client_list = &client_list;
                 client.send(to_string(lines_to_send), C_RESPONSE_FILE_INFO);
                 client.send(to_string(client.file_vec->size()));
                 // send contents line by line
@@ -222,14 +223,42 @@ void message_handler(size_t clientId) {
                 break;
             }
             case C_UPDATE_LINE_CONTENT: {
+                if(!client.isediting)
+                    break;
                 // size_t line_to_update = std::stoi(message);
                 // client.receive(message, command);
-                client.update_line(std::move(message));
+                client.broadcast(to_string(client.currloc),
+                                 C_UPDATE_LINE_CONTENT);
+                client.broadcast(client.update_line(std::move(message)),
+                                 C_UPDATE_LINE_CONTENT);
                 // TODO: broadcast change to all clients under this file
                 break;
             }
             case C_SET_CURSOR_POS: {
+                if(!client.isediting) {
+                    client.currloc = std::stoul(message);
+                    break;
+                }
+
+                // client[client.currloc].m.unlock();
                 client.currloc = std::stoul(message);
+                // client[client.currloc].m.lock();
+                break;
+            }
+            case C_SWITCH_TO_BROWSING_MODE: {
+                // client.currloc = std::stoul(message);
+                if(client.isediting) {
+                    client.isediting = false;
+                    // client[client.currloc].m.unlock();
+                }
+                break;
+            }
+            case C_SWITCH_TO_EDITING_MODE: {
+                // client.currloc = std::stoul(message);
+                if(!client.isediting) {
+                    client.isediting = true;
+                    // client[client.currloc].m.lock();
+                }
                 break;
             }
         }

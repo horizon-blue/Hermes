@@ -129,6 +129,19 @@ void FileContent::refresh_file_content(int row) {
     wmove(win, currrow_num, currcol);
 }
 
+void FileContent::refresh_file_content(list<ClientLineEntry>::iterator& iter,
+                                       int row) {
+    Window::printline(iter->s, row);
+    wmove(win, currrow_num, currcol);
+    wrefresh(win);
+}
+
+void FileContent::refresh_file_content(const string& line, int row) {
+    Window::printline(line, row);
+    wmove(win, currrow_num, currcol);
+    wrefresh(win);
+}
+
 void FileContent::refresh_currrow() {
     Window::printline(currrow->s, currrow_num);
     wmove(win, currrow_num, currcol);

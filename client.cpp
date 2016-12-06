@@ -58,20 +58,13 @@ int main() {
     print_welcome_screen();  // let user enter ip and port
     // ---------- connection established -------
 
-    // ---------- init editor ------------------
+    // ---------- run editor ------------------
 
     // use multithread to handle message
     std::thread handler_thread(message_handler);
     run_editor();
 
-
-    // for(char c = getch(); c != KEY_CTRL_Q; c = getch()) {
-    //     // printw("%c", c);
-    //     ;
-    //     // refresh();
-    // }
-    // // getch();
-
+    // ---------- exit editor ----------------
     handler_thread.join();
     endwin();  // end curse mode and restore screen
 
@@ -141,6 +134,20 @@ void message_handler() {
                 running = S_FILE_MODE;
                 break;
             }
+            case C_UPDATE_LINE_CONTENT: {
+                size_t line_to_insert = std::stoul(message);
+                server.receive(message, command);
+                int row = 0;
+                for(auto& line : file_contents) {
+                    if(line.linenum == line_to_insert) {
+                        line.s = std::move(message);
+                        editor.file.refresh_file_content(line.s, row);
+                        break;
+                    }
+                    ++row;
+                }
+                break;
+            }
         }
     }
 }
@@ -191,7 +198,8 @@ void run_editor() {
         server.send(to_string(max_row - 2));
         while(running == S_WAITING_MODE)  // waiting for file content
             ;
-        editor.status.print_status("Welcome to Hermes. Press Ctrl+Q to quit.");
+        editor.status.print_status(
+            "Welcome to Hermes. Press Ctrl+O to switch to editing mode.");
         editor.file.set_file_content(&file_contents);
         editor.file.refresh_file_content(-1);
         // int y = 0;
@@ -201,6 +209,8 @@ void run_editor() {
         while(running == S_FILE_MODE) {  // file mode
             c = wgetch(editor.file);
             if(std::isprint(c)) {
+                if(!editor.file.isediting)
+                    continue;
                 editor.file.insertchar(c);
                 // server.send(to_string(editor.file.get_row()),
                 //             C_UPDATE_LINE_CONTENT);
@@ -253,11 +263,34 @@ void run_editor() {
                 case KEY_DC:
                 case KEY_DELETE:
                 case '\b':
+                    if(!editor.file.isediting)
+                        break;
                     editor.file.delchar();
                     // server.send(to_string(editor.file.get_row()),
                     //             C_UPDATE_LINE_CONTENT);
                     server.send(editor.file.get_currline(),
                                 C_UPDATE_LINE_CONTENT);
+                    break;
+                case KEY_CTRL_O:
+                    editor.file.isediting = !editor.file.isediting;
+                    if(editor.file.isediting) {
+                        int curry, currx;
+                        getyx(static_cast<WINDOW*>(editor.file), curry, currx);
+                        server.send(to_string(editor.file.get_row()),
+                                    C_SWITCH_TO_EDITING_MODE);
+                        editor.status.print_status(
+                            "Welcome to Hermes. Press Ctrl+Q to quit.");
+                        wmove(editor.file, curry, currx);
+                    } else {
+                        int curry, currx;
+                        getyx(static_cast<WINDOW*>(editor.file), curry, currx);
+                        server.send(to_string(editor.file.get_row()),
+                                    C_SWITCH_TO_BROWSING_MODE);
+                        editor.status.print_status(
+                            "Welcome to Hermes. Press Ctrl+O to switch to "
+                            "editing mode.");
+                        wmove(editor.file, curry, currx);
+                    }
                     break;
             }
         }
