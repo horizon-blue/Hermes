@@ -38,7 +38,7 @@ using std::vector;
 // use filename as index
 // key "~" means the given client has not chose a file yet
 std::list<ClientSocket> client_list;
-std::unordered_map<string, vector<LineEntry>> file_map;
+std::unordered_map<string, vector<ServerLineEntry>> file_map;
 std::mutex client_list_mutex;
 std::mutex file_map_mutex;
 vector<string> file_list;
@@ -167,24 +167,29 @@ void message_handler(size_t clientId) {
             case C_OPEN_FILE_REQUEST: {
                 PERROR("Client " << clientId << " ask to open file "
                                  << message);
-                opened_file = message;
+                client.filename = std::move(message);
                 // check if the file is already opened
                 file_map_mutex.lock();
-                if(file_map.find(message) == file_map.end())
-                    server_open_file(message);
-                const auto& file_vec = file_map.at(message);
+                if(file_map.find(client.filename) == file_map.end())
+                    server_open_file(client.filename);
+                // const auto& file_vec = file_map.at(client.filename);
+                client.file_vec = &(file_map.at(client.filename));
                 file_map_mutex.unlock();
 
                 client.receive(message, command);
-                int lines_to_send = std::min(std::stoi(message),
-                                             static_cast<int>(file_vec.size()));
-
+                int lines_to_send =
+                    std::min(std::stoul(message), client.file_vec->size());
+                client.begloc  = 0;
+                client.rownum  = lines_to_send;
+                client.currloc = 0;
                 client.send(to_string(lines_to_send), C_RESPONSE_FILE_INFO);
-                client.send(to_string(file_vec.size()));
-                for(int i = 0; i < lines_to_send;
-                    ++i)  // send content of the line
-                    client.send(file_vec[i].s);
-
+                client.send(to_string(client.file_vec->size()));
+                // send contents line by line
+                for(int i = 0; i < lines_to_send; ++i)
+                    client.send(client[i]);
+                client_list_mutex.lock();
+                client.isready = true;
+                client_list_mutex.unlock();
                 PERROR("Sent " << lines_to_send << " lines.");
 
                 // client.send("This is just a placeholder for the actual
@@ -194,41 +199,46 @@ void message_handler(size_t clientId) {
                 break;
             }
             case C_PUSH_LINE_BACK: {
-                PERROR("Push " << message << " of file " << opened_file
+                PERROR("Push " << message << " of file " << client.filename
                                << " to client "
                                << clientId);
-                const auto& file_vec = file_map.at(opened_file);
-                size_t line_to_send  = std::stoi(message);
+                size_t line_to_send = std::stoul(message);
+                ++client.begloc;
+                client.currloc = line_to_send;
                 // if(file_vec.size() < line_to_send)
                 //     client.send("~", C_PUSH_LINE_BACK);  // shouldn't happen
                 // else
-                client.send(file_vec[line_to_send].s, C_PUSH_LINE_BACK);
+                client.send(client[line_to_send], C_PUSH_LINE_BACK);
                 break;
             }
             case C_PUSH_LINE_FRONT: {
                 PERROR("Push " << message << " of file " << opened_file
                                << " to client "
                                << clientId);
-                const auto& file_vec = file_map.at(opened_file);
-                size_t line_to_send  = std::stoi(message);
-
-                client.send(file_vec[line_to_send].s, C_PUSH_LINE_FRONT);
+                size_t line_to_send = std::stoul(message);
+                --client.begloc;
+                client.currloc = line_to_send;
+                client.send(client[line_to_send], C_PUSH_LINE_FRONT);
                 break;
             }
             case C_UPDATE_LINE_CONTENT: {
-                auto& file_vec        = file_map.at(opened_file);
-                size_t line_to_update = std::stoi(message);
-                client.receive(message, command);
-                file_vec[line_to_update].m.lock();
-                file_vec[line_to_update].s = message;
-                file_vec[line_to_update].m.unlock();
+                // size_t line_to_update = std::stoi(message);
+                // client.receive(message, command);
+                client.update_line(std::move(message));
                 // TODO: broadcast change to all clients under this file
+                break;
+            }
+            case C_SET_CURSOR_POS: {
+                client.currloc = std::stoul(message);
                 break;
             }
         }
     }
 
     cout << "Client " << clientId << " left." << endl;
+    client_list_mutex.lock();
+    client_list.erase(iter_self);
+    client_list_mutex.unlock();
 }
 
 void server_open_file(const string& filename) {
@@ -240,6 +250,10 @@ void server_open_file(const string& filename) {
     auto& file_vec = file_map[filename];
     // read and store the entire file into the vector
     string temp;
-    while(std::getline(fin, temp))
+    while(std::getline(fin, temp)) {
+        while(!temp.empty() && (temp.back() == '\n' || temp.back() == '\r' ||
+                                temp.back() == '\0'))
+            temp.pop_back();  // remove new lines and null characters
         file_vec.emplace_back(temp);
+    }
 }

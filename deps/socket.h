@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <climits>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -99,6 +100,17 @@ public:
     ssize_t broadcast(const string& message,
                       const std::vector<int>& client_list,
                       int command_type = C_OTHER);
+    string filename;
+    size_t begloc                     = 0;
+    size_t rownum                     = ULONG_MAX;
+    size_t currloc                    = 0;
+    bool isediting                    = false;
+    bool isready                      = false;
+    vector<ServerLineEntry>* file_vec = nullptr;
+    vector<ClientSocket>* client_vec  = nullptr;
+    ServerLineEntry& operator[](unsigned int i) { return (*file_vec)[i]; }
+    operator bool() const { return isready; }
+    void update_line(string&& line);
 };
 
 #endif

@@ -3,6 +3,7 @@
 // a C++ implimentation of the old deps/util.h
 #include <cinttypes>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -33,6 +34,9 @@ enum COMMAND_TYPES {
     C_PUSH_LINE_FRONT,
     C_PUSH_LINE_BACK,
     C_UPDATE_LINE_CONTENT,
+    C_SET_CURSOR_POS,
+    C_SWITCH_TO_BROWSING_MODE,
+    C_SWITCH_TO_EDITING_MODE,
     C_OTHER = 122,
 };
 
@@ -41,6 +45,7 @@ enum STATUS_TYPES {
     S_DIR_MODE,
     S_WAITING_MODE,
     S_FILE_MODE,
+    S_BROWSING_MODE,  // no editing
 };
 
 uint64_t get_timestamp();
@@ -59,4 +64,12 @@ struct ClientLineEntry {
     string s;
 };
 
+struct ServerLineEntry {
+    ServerLineEntry() = default;
+    ServerLineEntry(const ServerLineEntry& other) : s(other.s) {}
+    ServerLineEntry(const string& line) : s(line) {}
+    operator string&() { return s; }
+    std::mutex m;
+    string s;
+};
 #endif

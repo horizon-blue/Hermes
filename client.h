@@ -6,10 +6,13 @@
 #include <vector>
 #include "util.h"
 
-#define KEY_CTRL_C 3
-#define KEY_CTRL_G 7
-#define KEY_CTRL_Q 17
-#define KEY_DELETE 127
+enum CTRL_KEY_TYPE {
+    KEY_CTRL_C = 3,
+    KEY_CTRL_G = 7,
+    KEY_CTRL_M = 13,
+    KEY_CTRL_Q = 17,
+    KEY_DELETE = 127,
+};
 
 using std::string;
 using std::vector;

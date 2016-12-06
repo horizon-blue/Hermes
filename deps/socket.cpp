@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <cinttypes>
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <utility>
 
@@ -68,7 +69,7 @@ ssize_t Socket::send(const string& message, int command_type) {
     string encrypted;
     encrypted.push_back(static_cast<char>(command_type));
     encrypted.append(std::move(base64_encode(message)));
-    int32_t len = htonl(encrypted.size() - 1);
+    int32_t len = htonl(encrypted.size());
     if(sen(reinterpret_cast<char*>(&len), MESSAGE_SIZE_DIGITS) < 0)
         return -1;
     ssize_t retval = sen(encrypted);
@@ -92,6 +93,14 @@ ssize_t ClientSocket::broadcast(const string& message,
             return retval;
     }
     return retval;
+}
+
+void ClientSocket::update_line(string&& line) {
+    if(!file_vec)
+        return;
+    (*file_vec)[currloc].m.lock();
+    (*file_vec)[currloc].s = std::move(line);
+    (*file_vec)[currloc].m.unlock();
 }
 
 ssize_t Socket::sen(const string& message, size_t len, int s) {
@@ -141,20 +150,23 @@ ssize_t Socket::receive(string& buffer, int& command_type) {
         return -1;
 
     len = ntohl(len);
-    PERROR("message size is " << len);
+    // PERROR("message size is " << len);
 
     char c;
     if(recv(&c, 1) < 0)
         return -1;  // get command type
     command_type = static_cast<int>(c);
-
+    if(len == 1) {
+        buffer.clear();
+        return 1;
+    }
     string temp;
-    ssize_t retval = recv(temp, static_cast<size_t>(len));
+    ssize_t retval = recv(temp, static_cast<size_t>(len - 1));
     if(retval <= 0)
         return retval;
     buffer = std::move(base64_decode(std::move(temp)));
     // buffer = std::move(temp);  // test
-    return retval;
+    return retval + 1;
 }
 
 ssize_t Socket::recv(string& buffer, size_t len) {
@@ -224,7 +236,7 @@ bool ServerSocket::connect() {
     std::memset(&info, 0, sizeof(info));  // Zero out addrinfo structure
     info.sin_family      = AF_INET;       // Internet address family
     info.sin_addr.s_addr = htonl(INADDR_ANY);
-    info.sin_port        = htons(static_cast<unsigned short>(std::stol(port)));
+    info.sin_port        = htons(static_cast<unsigned short>(std::stoul(port)));
 
     if(bind(socket, reinterpret_cast<sockaddr*>(&info), sizeof(info)) < 0) {
         close(socket);

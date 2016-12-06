@@ -89,7 +89,7 @@ public:
     void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
     void refresh_currrow();
     const string& get_currline() const { return currrow->s; }
-    size_t get_row() const { return currrow_num; }
+    size_t get_row() const { return currrow->linenum; }
 
 private:
     list<ClientLineEntry>* file_content;

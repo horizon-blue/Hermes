@@ -98,9 +98,9 @@ void message_handler() {
         mvprintw(0, max_col / 2 - 10, "receive() fails.");
         return;
     }
-    int num_message = std::stoi(message);
+    size_t num_message = std::stoul(message);
     file_list.reserve(num_message);
-    for(int i = 0; i < num_message; ++i) {
+    for(size_t i = 0; i < num_message; ++i) {
         server.receive(message, command);
         file_list.push_back(message);
     }
@@ -117,28 +117,28 @@ void message_handler() {
 
         switch(command) {
             case C_RESPONSE_FILE_INFO: {
-                num_message = std::stoi(message);
+                num_message = std::stoul(message);
                 server.receive(message, command);
-                editor.file.set_num_file_lines(std::stoi(message));
+                editor.file.set_num_file_lines(std::stoul(message));
                 for(int i = 0; i < num_message; ++i) {
                     server.receive(message, command);
                     file_contents.emplace_back(std::move(message), i);
                 }
-                running = 3;
+                running = S_FILE_MODE;
                 break;
             }
             case C_PUSH_LINE_BACK: {
                 file_contents.pop_front();
                 file_contents.emplace_back(std::move(message),
                                            file_contents.back().linenum + 1);
-                running = 3;
+                running = S_FILE_MODE;
                 break;
             }
             case C_PUSH_LINE_FRONT: {
                 file_contents.pop_back();
                 file_contents.emplace_front(std::move(message),
                                             file_contents.front().linenum - 1);
-                running = 3;
+                running = S_FILE_MODE;
                 break;
             }
         }
@@ -202,9 +202,9 @@ void run_editor() {
             c = wgetch(editor.file);
             if(std::isprint(c)) {
                 editor.file.insertchar(c);
-                server.send(to_string(editor.file.get_row()),
-                            C_UPDATE_LINE_CONTENT);
-                server.send(editor.file.get_currline());
+                // server.send(to_string(editor.file.get_row()),
+                //             C_UPDATE_LINE_CONTENT);
+                server.send(editor.file.get_currline(), C_UPDATE_LINE_CONTENT);
 
                 // skip the following switch statement
                 continue;
@@ -214,7 +214,7 @@ void run_editor() {
                     endwin();
                     running = 0;
                     std::exit(0);
-                case KEY_UP:
+                case KEY_UP: {
                     if(editor.file.scroll_up() == -1) {
                         // retrieve previous line from server
                         server.send(
@@ -225,8 +225,11 @@ void run_editor() {
                             ;
                         editor.file.refresh_file_content(-1);
                     }
+                    server.send(to_string(editor.file.get_row()),
+                                C_SET_CURSOR_POS);
                     break;
-                case KEY_DOWN:
+                }
+                case KEY_DOWN: {
                     if(editor.file.scroll_down() == -1) {
                         // retrieve the line after from server
                         server.send(to_string(file_contents.back().linenum + 1),
@@ -236,7 +239,10 @@ void run_editor() {
                             ;
                         editor.file.refresh_file_content(-1);
                     }
+                    server.send(to_string(editor.file.get_row()),
+                                C_SET_CURSOR_POS);
                     break;
+                }
                 case KEY_LEFT:
                     editor.file.scroll_left();
                     break;
@@ -248,9 +254,10 @@ void run_editor() {
                 case KEY_DELETE:
                 case '\b':
                     editor.file.delchar();
-                    server.send(to_string(editor.file.get_row()),
+                    // server.send(to_string(editor.file.get_row()),
+                    //             C_UPDATE_LINE_CONTENT);
+                    server.send(editor.file.get_currline(),
                                 C_UPDATE_LINE_CONTENT);
-                    server.send(editor.file.get_currline());
                     break;
             }
         }
