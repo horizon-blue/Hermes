@@ -104,6 +104,12 @@ public:
     //                   const std::vector<int>& client_list,
     //                   int command_type = C_OTHER);
     ssize_t broadcast(const string& message, int command_type = C_OTHER);
+
+    ServerLineEntry& operator[](unsigned int i) { return (*file_vec)[i]; }
+    operator bool() const { return isready; }
+    string& update_line(string&& line);
+
+    // public member variables
     string filename;
     size_t begloc                     = 0;
     size_t rownum                     = ULONG_MAX;
@@ -112,9 +118,6 @@ public:
     bool isready                      = false;
     vector<ServerLineEntry>* file_vec = nullptr;
     list<ClientSocket>* client_list   = nullptr;
-    ServerLineEntry& operator[](unsigned int i) { return (*file_vec)[i]; }
-    operator bool() const { return isready; }
-    string& update_line(string&& line);
 };
 
 #endif

@@ -122,7 +122,7 @@ string& ClientSocket::update_line(string&& line) {
     if(!file_vec)
         return line;
     (*file_vec)[currloc].s = std::move(line);
-    return line;
+    return (*file_vec)[currloc].s;
 }
 
 ssize_t Socket::sen(const string& message, size_t len, int s) {

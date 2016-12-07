@@ -77,24 +77,34 @@ private:
 
 class FileContent : public Window {
 public:
+    // init
+    void set_num_file_lines(const size_t& i) { num_file_lines = i; }
+    void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
+
+
     int scroll_up();
     int scroll_down();
     int scroll_right();
     int scroll_left();
+
+    // modifying member function
     void insertchar(const char& c);  // insert character at current position
     void delchar();
-    void set_num_file_lines(const size_t& i) { num_file_lines = i; }
-    list<ClientLineEntry>::iterator get_line(int row);
-    void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
+    void add_line();
+    void del_line();
+
     void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
     void refresh_file_content(list<ClientLineEntry>::iterator& iter, int row);
     void refresh_file_content(const string& line, int row);
     void refresh_currrow();
+
+    // accessing operators
+    list<ClientLineEntry>::iterator get_line(int row);
     const string& get_currline() const { return currrow->s; }
     size_t get_row() const { return currrow->linenum; }
 
     bool isediting = false;
-    vector<bool> other_status_vec;
+    // vector<bool> other_status_vec;
 
 private:
     list<ClientLineEntry>* file_content;

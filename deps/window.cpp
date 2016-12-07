@@ -216,3 +216,35 @@ void FileContent::delchar() {
     refresh_currrow();
     wmove(win, currrow_num, currcol);
 }
+
+void FileContent::add_line() {
+    // prevent client fro inserting new line at the end
+    // of editor
+    if(!file_content || currrow_num == max_row - 2)
+        return;
+    // the contents in original line is splited based on
+    // currcol
+    string temp(currrow->s.begin() + currcol, currrow->s.end());
+    currrow->s.erase(currrow->s.begin() + currcol, currrow->s.end());
+    Window::printline(currrow->s, currrow_num);
+    auto iter = currrow;
+    currrow =
+        file_content->emplace(++iter, std::move(temp), currrow->linenum + 1);
+    ++currrow_num;
+    Window::printline(currrow->s, currrow_num);
+    if(file_content->size() >= max_row)
+        file_content->pop_back();
+
+    int y = currrow_num + 1;
+
+    currcol = 0;
+    while(iter != file_content->end()) {
+        Window::printline(iter->s, y);
+        ++(iter->linenum);
+        ++iter;
+        ++y;
+    }
+    // refresh entire file
+
+    wmove(win, currrow_num, currcol);
+}

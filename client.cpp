@@ -148,6 +148,9 @@ void message_handler() {
                 }
                 break;
             }
+            case C_SAVE_FILE: {
+                running = S_FILE_MODE;  // wake up editor from waiting mode
+            }
         }
     }
 }
@@ -259,6 +262,37 @@ void run_editor() {
                 case KEY_RIGHT:
                     editor.file.scroll_right();
                     break;
+                case KEY_CTRL_S:
+                case KEY_SAVE: {
+                    int curry, currx;
+                    getyx(static_cast<WINDOW*>(editor.file), curry, currx);
+                    // ask the server to dump what is in memory
+                    // into a file
+                    // No need to be in editing mode
+                    server.send("", C_SAVE_FILE);
+                    editor.status.print_status("Saving file on server...");
+                    // since the thread for current client won't be
+                    // ready to receive new message until the server
+                    // is done saving file, we'll wait
+                    running = S_WAITING_MODE;
+                    while(running == S_WAITING_MODE)
+                        ;
+                    if(editor.file.isediting)
+                        editor.status.print_status(
+                            "Welcome to Hermes. Press Ctrl+Q to quit.");
+                    else
+                        editor.status.print_status(
+                            "Welcome to Hermes. Press Ctrl+O to switch to "
+                            "editing mode.");
+                    wmove(editor.file, curry, currx);
+                    break;
+                }
+                case '\n':
+                case KEY_ENTER: {
+                    // insert a new line
+                    editor.file.add_line();
+                    break;
+                }
                 case KEY_BACKSPACE:
                 case KEY_DC:
                 case KEY_DELETE:

@@ -261,6 +261,11 @@ void message_handler(size_t clientId) {
                 }
                 break;
             }
+            case C_SAVE_FILE: {
+                // save the file and inform the client when we are done
+                server_save_file(client.filename);
+                client.send("", C_SAVE_FILE);
+            }
         }
     }
 
@@ -285,4 +290,17 @@ void server_open_file(const string& filename) {
             temp.pop_back();  // remove new lines and null characters
         file_vec.emplace_back(temp);
     }
+}
+
+void server_save_file(const string& filename) {
+    PERROR("Saving file" << filename);
+    std::ofstream fout(base_directory + filename);
+    if(!fout.is_open())
+        PERROR("Failed to save " << filename);
+    // if the vector does not exist, we will simply create
+    // an empty file
+    auto& file_vec = file_map[filename];
+    for(const string& s : file_vec)
+        fout << s << '\n';
+    fout << std::flush;
 }

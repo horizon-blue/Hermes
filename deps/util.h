@@ -37,6 +37,9 @@ enum COMMAND_TYPES {
     C_SET_CURSOR_POS,
     C_SWITCH_TO_BROWSING_MODE,
     C_SWITCH_TO_EDITING_MODE,
+    C_INSERT_LINE,
+    C_DELETE_LINE,
+    C_SAVE_FILE,
     C_OTHER = 122,
 };
 
@@ -69,7 +72,7 @@ struct ServerLineEntry {
     ServerLineEntry(const ServerLineEntry& other) : s(other.s) {}
     ServerLineEntry(const string& line) : s(line) {}
     operator string&() { return s; }
-    std::mutex m;
+    // std::mutex m;
     string s;
 };
 #endif

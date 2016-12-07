@@ -16,6 +16,7 @@ void int_handler(int sig);
 int run_server();
 void message_handler(size_t clientId);
 void server_open_file(const string& filename);
+void server_save_file(const string& filename);
 // ssize_t broadcast(const list<ClientSocket>& client_list,
 //                   const string& filename,
 //                   const string& message,
