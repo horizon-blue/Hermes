@@ -80,7 +80,7 @@ public:
     // init
     void set_num_file_lines(const size_t& i) { num_file_lines = i; }
     void set_file_content(list<ClientLineEntry>* fc, int row = 0, int col = 0);
-
+    void set_pos(int row, int col);
 
     int scroll_up();
     int scroll_down();
@@ -91,7 +91,9 @@ public:
     void insertchar(const char& c);  // insert character at current position
     void delchar();
     void add_line();
-    void del_line();
+    void insert_line(const string& s, size_t linenum);
+    ssize_t del_line();
+    ssize_t delete_line(size_t linenum);
 
     void refresh_file_content(int row = -1);  // row = -1 -> refresh entire file
     void refresh_file_content(list<ClientLineEntry>::iterator& iter, int row);

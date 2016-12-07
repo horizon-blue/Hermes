@@ -127,6 +127,12 @@ void message_handler() {
                 running = S_FILE_MODE;
                 break;
             }
+            case C_ADD_LINE_BACK: {
+                file_contents.emplace_back(std::move(message),
+                                           file_contents.back().linenum + 1);
+                running = S_FILE_MODE;
+                break;
+            }
             case C_PUSH_LINE_FRONT: {
                 file_contents.pop_back();
                 file_contents.emplace_front(std::move(message),
@@ -145,6 +151,26 @@ void message_handler() {
                         break;
                     }
                     ++row;
+                }
+                break;
+            }
+            case C_INSERT_LINE: {
+                size_t line_to_insert = std::stoul(message);
+                server.receive(message, command);
+                editor.file.insert_line(message, line_to_insert);
+                break;
+            }
+            case C_DELETE_LINE: {
+                int r, c;
+                getyx(static_cast<WINDOW*>(editor.file), r, c);
+                if(editor.file.delete_line(std::stoul(message)) == 1) {
+                    server.send(to_string(file_contents.back().linenum + 1),
+                                C_ADD_LINE_BACK);
+                    server.receive(message, command);
+                    file_contents.emplace_back(
+                        std::move(message), file_contents.back().linenum + 1);
+                    editor.file.refresh_file_content(-1);
+                    editor.file.set_pos(r - 1, c);
                 }
                 break;
             }
@@ -279,11 +305,12 @@ void run_editor() {
                         ;
                     if(editor.file.isediting)
                         editor.status.print_status(
-                            "Welcome to Hermes. Press Ctrl+Q to quit.");
+                            "Press Ctrl+O to switch to browsing mode. Press "
+                            "Ctrl+Q to quit.");
                     else
                         editor.status.print_status(
-                            "Welcome to Hermes. Press Ctrl+O to switch to "
-                            "editing mode.");
+                            "Press Ctrl+O to switch to editing mode. Press "
+                            "Ctrl+Q to quit.");
                     wmove(editor.file, curry, currx);
                     break;
                 }
@@ -313,7 +340,7 @@ void run_editor() {
                     server.send(editor.file.get_currline(),
                                 C_UPDATE_LINE_CONTENT);
                     break;
-                case KEY_CTRL_O:
+                case KEY_CTRL_O: {
                     editor.file.isediting = !editor.file.isediting;
                     if(editor.file.isediting) {
                         int curry, currx;
@@ -321,7 +348,8 @@ void run_editor() {
                         server.send(to_string(editor.file.get_row()),
                                     C_SWITCH_TO_EDITING_MODE);
                         editor.status.print_status(
-                            "Welcome to Hermes. Press Ctrl+Q to quit.");
+                            "Press Ctrl+O to switch to browsing mode. Press "
+                            "Ctrl+Q to quit.");
                         wmove(editor.file, curry, currx);
                     } else {
                         int curry, currx;
@@ -329,11 +357,38 @@ void run_editor() {
                         server.send(to_string(editor.file.get_row()),
                                     C_SWITCH_TO_BROWSING_MODE);
                         editor.status.print_status(
-                            "Welcome to Hermes. Press Ctrl+O to switch to "
-                            "editing mode.");
+                            "Press Ctrl+O to switch to editing mode. Press "
+                            "Ctrl+Q to quit.");
                         wmove(editor.file, curry, currx);
                     }
                     break;
+                }
+                case KEY_CTRL_X: {
+                    if(!editor.file.isediting)
+                        break;
+                    int curry, currx;
+                    getyx(static_cast<WINDOW*>(editor.file), curry, currx);
+                    ssize_t retval = editor.file.del_line();
+                    if(retval == -1) {
+                        editor.file.set_pos(curry - 1, 0);
+                        break;
+                    }
+                    server.send(to_string(editor.file.get_row() + 1),
+                                C_DELETE_LINE);
+                    if(retval == 1) {
+
+                        server.send(to_string(file_contents.back().linenum + 1),
+                                    C_ADD_LINE_BACK);
+                        running = S_WAITING_MODE;
+                        while(running == S_WAITING_MODE)
+                            ;
+                    }
+                    editor.file.refresh_file_content(-1);
+                    editor.file.set_pos(curry - 1, 0);
+                    server.send(to_string(editor.file.get_row()),
+                                C_SET_CURSOR_POS);
+                    break;
+                }
             }
         }
     }

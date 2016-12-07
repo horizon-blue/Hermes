@@ -204,12 +204,17 @@ void message_handler(size_t clientId) {
                                << " to client "
                                << clientId);
                 size_t line_to_send = std::stoul(message);
-                ++client.begloc;
-                client.currloc = line_to_send;
+                client.begloc       = line_to_send - client.rownum;
+                client.currloc      = line_to_send;
                 // if(file_vec.size() < line_to_send)
                 //     client.send("~", C_PUSH_LINE_BACK);  // shouldn't happen
                 // else
                 client.send(client[line_to_send], C_PUSH_LINE_BACK);
+                break;
+            }
+            case C_ADD_LINE_BACK: {
+                size_t line_to_send = std::stoul(message);
+                client.send(client[line_to_send], C_ADD_LINE_BACK);
                 break;
             }
             case C_PUSH_LINE_FRONT: {
@@ -217,8 +222,8 @@ void message_handler(size_t clientId) {
                                << " to client "
                                << clientId);
                 size_t line_to_send = std::stoul(message);
-                --client.begloc;
-                client.currloc = line_to_send;
+                client.begloc       = line_to_send;
+                client.currloc      = line_to_send;
                 client.send(client[line_to_send], C_PUSH_LINE_FRONT);
                 break;
             }
@@ -265,6 +270,24 @@ void message_handler(size_t clientId) {
                 // save the file and inform the client when we are done
                 server_save_file(client.filename);
                 client.send("", C_SAVE_FILE);
+            }
+            case C_INSERT_LINE: {
+                if(!client.isediting)
+                    break;
+                // the line before breaking should have already been
+                // updated... the line should be inserted after
+                // current row
+
+                client.insert_line(message);
+                client.broadcast(to_string(client.currloc), C_INSERT_LINE);
+                client.broadcast(message, C_INSERT_LINE);
+            }
+            case C_DELETE_LINE: {
+                if(!client.isediting)
+                    break;
+                size_t line_to_delete = std::stoul(message);
+                client.delete_line(line_to_delete);
+                client.broadcast(message, C_DELETE_LINE);
             }
         }
     }

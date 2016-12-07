@@ -12,6 +12,7 @@ enum CTRL_KEY_TYPE {
     KEY_CTRL_O = 15,
     KEY_CTRL_Q = 17,
     KEY_CTRL_S = 19,
+    KEY_CTRL_X = 24,
     KEY_DELETE = 127,
 };
 

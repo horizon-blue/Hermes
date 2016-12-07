@@ -23,7 +23,7 @@ LDFLAGS = -lncurses -lpthread -I$(DEPS_DIR)/ -I$(OBJS_DIR)/ -std=c++11
 -include $(OBJS_DIR)/*.d
 
 .PHONY: all
-all: release
+all: clean release
 
 .PHONY: release
 .PHONY: debug

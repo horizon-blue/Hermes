@@ -108,6 +108,8 @@ public:
     ServerLineEntry& operator[](unsigned int i) { return (*file_vec)[i]; }
     operator bool() const { return isready; }
     string& update_line(string&& line);
+    void insert_line(const string& line);
+    void delete_line(size_t linenum);
 
     // public member variables
     string filename;

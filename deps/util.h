@@ -40,6 +40,7 @@ enum COMMAND_TYPES {
     C_INSERT_LINE,
     C_DELETE_LINE,
     C_SAVE_FILE,
+    C_ADD_LINE_BACK,
     C_OTHER = 122,
 };
 

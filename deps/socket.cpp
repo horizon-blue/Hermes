@@ -125,6 +125,41 @@ string& ClientSocket::update_line(string&& line) {
     return (*file_vec)[currloc].s;
 }
 
+void ClientSocket::insert_line(const string& line) {
+    if(!file_vec)
+        return;
+    // + 1 since we are inserting before current location
+    (*file_vec).insert(file_vec->begin() + (++currloc), line);
+
+    // calculating new client locations
+    if(!client_list)
+        return;
+    for(auto& client : *client_list) {
+        if(&client == this || !client.isready || client.filename != filename ||
+           client.begloc < currloc)
+            continue;
+        ++client.begloc;
+        ++client.currloc;
+    }
+}
+
+void ClientSocket::delete_line(size_t linenum) {
+    if(!file_vec || linenum > file_vec->size())
+        return;
+    (*file_vec).erase(file_vec->begin() + linenum);
+    currloc = linenum - 1;
+    // calculating new client locations
+    if(!client_list)
+        return;
+    for(auto& client : *client_list) {
+        if(&client == this || !client.isready || client.filename != filename ||
+           client.begloc < linenum)
+            continue;
+        --client.begloc;
+        --client.currloc;
+    }
+}
+
 ssize_t Socket::sen(const string& message, size_t len, int s) {
     if(s == -1)
         s = socket;
