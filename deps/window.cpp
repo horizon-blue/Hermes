@@ -220,7 +220,7 @@ void FileContent::delchar() {
 void FileContent::add_line() {
     // prevent client fro inserting new line at the end
     // of editor
-    if(!file_content || currrow_num == max_row - 2)
+    if(!file_content || currrow_num == max_row - 1)
         return;
     // the contents in original line is splited based on
     // currcol
@@ -232,9 +232,10 @@ void FileContent::add_line() {
         file_content->emplace(++iter, std::move(temp), currrow->linenum + 1);
     ++currrow_num;
     Window::printline(currrow->s, currrow_num);
-    if(file_content->size() >= max_row)
+    if(file_content->size() > max_row)
         file_content->pop_back();
-
+    iter = currrow;
+    ++iter;  // in case iter get pop out
     int y = currrow_num + 1;
 
     currcol = 0;
@@ -245,6 +246,7 @@ void FileContent::add_line() {
         ++y;
     }
     // refresh entire file
+    // refresh_file_content(-1);
 
     wmove(win, currrow_num, currcol);
 }
