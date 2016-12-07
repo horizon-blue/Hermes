@@ -289,8 +289,16 @@ void run_editor() {
                 }
                 case '\n':
                 case KEY_ENTER: {
+                    if(!editor.file.isediting)
+                        break;
                     // insert a new line
                     editor.file.add_line();
+                    // first update the content of the original line
+                    // then insert the new line
+                    server.send(editor.file.get_prevline(),
+                                C_UPDATE_LINE_CONTENT);
+                    server.send(editor.file.get_currline(), C_INSERT_LINE);
+
                     break;
                 }
                 case KEY_BACKSPACE:

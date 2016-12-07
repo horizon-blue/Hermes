@@ -101,6 +101,7 @@ public:
     // accessing operators
     list<ClientLineEntry>::iterator get_line(int row);
     const string& get_currline() const { return currrow->s; }
+    const string& get_prevline() const;
     size_t get_row() const { return currrow->linenum; }
 
     bool isediting = false;

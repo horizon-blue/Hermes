@@ -250,3 +250,10 @@ void FileContent::add_line() {
 
     wmove(win, currrow_num, currcol);
 }
+
+const string& FileContent::get_prevline() const {
+    if(!file_content || currrow == file_content->begin())
+        return currrow->s;
+    auto iter = currrow;
+    return (--iter)->s;
+}
