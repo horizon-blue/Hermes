@@ -28,6 +28,8 @@ $ make client-debug
 | Switch to editing/browsing mode | Ctrl + O |
 | Quit (client) editor            | Ctrl + Q |
 | Close server                    | Ctrl + C |
+| Save file                       | Ctrl + S |
+| Delete a line                   | Ctrl + X |
 
 ## File
 The diagram is generated using [tree](https://en.wikipedia.org/wiki/Tree_(Unix))
