@@ -61,3 +61,7 @@ The diagram is generated using [tree](https://en.wikipedia.org/wiki/Tree_(Unix))
 ├── server.h
 └── test.cpp            # testing program that is used during development stage
 ```
+
+## Presentation
+
+[Check this link on Googld Slides](https://docs.google.com/presentation/d/1d8FbXWBz2Ih0aPLtJc6MTJq6t6tbwiN2zyQtFPKGazA/edit?usp=sharing)
