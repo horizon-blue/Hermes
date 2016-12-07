@@ -281,6 +281,7 @@ void message_handler(size_t clientId) {
                 client.insert_line(message);
                 client.broadcast(to_string(client.currloc), C_INSERT_LINE);
                 client.broadcast(message, C_INSERT_LINE);
+                break;
             }
             case C_DELETE_LINE: {
                 if(!client.isediting)
