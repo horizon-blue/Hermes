@@ -221,7 +221,7 @@ ssize_t Socket::receive(string& buffer, int& command_type) {
     ssize_t retval = recv(temp, static_cast<size_t>(len - 1));
     if(retval <= 0)
         return retval;
-    buffer = std::move(base64_decode(std::move(temp)));
+    buffer = base64_decode(std::move(temp));
     // buffer = std::move(temp);  // test
     return retval + 1;
 }

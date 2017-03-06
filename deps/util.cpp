@@ -2,6 +2,11 @@
 #include <sys/types.h>
 #include <time.h>
 
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 #include <algorithm>
 #include <cinttypes>
 #include <string>

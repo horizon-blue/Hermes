@@ -122,7 +122,7 @@ void FileContent::refresh_file_content(int row) {
     for(const auto& l : *file_content)
         mvwaddnstr(win, ++row, 0, l.s.c_str(), max_col);
     wrefresh(win);
-    currrow = std::move(get_line(currrow_num));
+    currrow = get_line(currrow_num);
     if((currrow->s).size() < currcol) {
         currcol = currrow->s.size();
     }
